@@ -12,5 +12,8 @@ jobs:
           extra_nix_config: |
             trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
             substituters = https://cache.nixos.org/
-      - name: Build all derivations 
-        run: nix-build -A ledger -A midnight -j1
+      - run: nix-build -A agdaLedger
+      - run: nix-build -A ledger.executableSpec -j1 
+      - run: nix-build -A ledger.docs -j1
+      - run: nix-build -A midnight.executableSpec -j1
+      - run: nix-build -A midnight.docs -j1
