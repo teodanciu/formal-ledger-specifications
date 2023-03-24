@@ -60,8 +60,11 @@ jobs:
     - name: Export all derivations
       run: |
         agdaLedger=$(nix-store --query --requisites --include-outputs ${{ steps.agdaLedger.outputs.derivation }})
+        agda=$(nix-store --query --requisites --include-outputs ${{ steps.agda.outputs.derivation }})
         echo "Here is agdaLedger: $agdaLedger"
-        nix-store --export ${{ steps.agdaLedger.outputs.derivation }} ${{ steps.agda.outputs.derivation }} > store-cache
+        echo "Here is agda: $agda"
+        nix-store --export $agda $agdaLedger > store-cache
+        du -sh store-cache
 
     - name: Cache nix store
       uses: actions/cache@v3
