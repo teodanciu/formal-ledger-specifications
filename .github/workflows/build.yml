@@ -48,6 +48,12 @@ jobs:
     - run: |
         echo "Here is agdaLedger: ${{ steps.agdaLedger.outputs.derivation }}"
         nix-store --query --requisites --include-outputs ${{ steps.agdaLedger.outputs.derivation }}
+        nix-store --export ${{ steps.agdaLedger.outputs.derivation }} > store-cache
+        ls
+        pwd 
+    # - name: cache nix store
+    #   uses: actions/cache@v3
+    #   with: 
 # jobs:
 #   build:
 #     runs-on: ubuntu-latest
