@@ -46,12 +46,14 @@ jobs:
       run: |
         v=$(nix-build -A agda)
         echo "v is: $v"
+        nix show-derivation $v
         echo "derivation=$v" >> $GITHUB_OUTPUT
 
     - name: Build agdaLedger
       id: agdaLedger
       run: |
         v=$(nix-build -A agdaLedger)
+        nix show-derivation $v
         echo "derivation=$v" >> $GITHUB_OUTPUT
     # - run: nix-build -A ledger.executableSpec -j1
     # - run: nix-build -A ledger.docs -j1
