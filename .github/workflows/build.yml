@@ -45,15 +45,19 @@ jobs:
     # - run: nix-build -A ledger.docs -j1
     # - run: nix-build -A midnight.executableSpec -j1
     # - run: nix-build -A midnight.docs -j1
-    - run: |
+    - name: Export all derivations
+      run: |
         echo "Here is agdaLedger: ${{ steps.agdaLedger.outputs.derivation }}"
         nix-store --query --requisites --include-outputs ${{ steps.agdaLedger.outputs.derivation }}
         nix-store --export ${{ steps.agdaLedger.outputs.derivation }} > store-cache
         ls
         pwd 
-    # - name: cache nix store
-    #   uses: actions/cache@v3
-    #   with: 
+
+    - name: Cache nix store
+      uses: actions/cache@v3
+      with: 
+        key: nix-cache-${{ runner.os }}
+        path: store-cache
 # jobs:
 #   build:
 #     runs-on: ubuntu-latest
