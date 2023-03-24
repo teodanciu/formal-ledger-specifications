@@ -47,6 +47,7 @@ jobs:
     # - run: nix-build -A midnight.docs -j1
     - run: |
         echo "Here is agdaLedger: ${{ steps.agdaLedger.outputs.derivation }}"
+        nix-store --query --requisites --include-outputs ${{ steps.agdaLedger.outputs.derivation }}
 # jobs:
 #   build:
 #     runs-on: ubuntu-latest
