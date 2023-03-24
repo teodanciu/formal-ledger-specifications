@@ -7,27 +7,27 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    # - run: |
-    #     # Create with liberal rights, otherwise cache action will complain
-    #     # about permission errors.
-    #     whoami
-    #     sudo mkdir -p /nix/store /nix/var
-    #     sudo chmod -R 777 /nix
+    - run: |
+        # Create with liberal rights, otherwise cache action will complain
+        # about permission errors.
+        whoami
+        sudo mkdir -p /nix/store /nix/var
+        sudo chmod -R 777 /nix
 
-    # # - name: Cache nix env
-    #   uses: actions/cache@v3
-    #   with:
-    #     path: |
-    #       /nix/store/**
-    #       /nix/var/nix/*/*
-    #       /nix/var/nix/db/*
-    #       /nix/var/nix/db/*/**
-    #       !/nix/var/nix/daemon-socket/socket
-    #       !/nix/var/nix/userpool/*
-    #       !/nix/var/nix/gc.lock
-    #       !/nix/var/nix/db/big-lock
-    #       !/nix/var/nix/db/reserved
-    #     key: ${{ runner.os }}-nix-store
+    - name: Cache nix env
+      uses: actions/cache@v3
+      with:
+        path: |
+          /nix/store/**
+          /nix/var/nix/*/*
+          /nix/var/nix/db/*
+          /nix/var/nix/db/*/**
+          !/nix/var/nix/daemon-socket/socket
+          !/nix/var/nix/userpool/*
+          !/nix/var/nix/gc.lock
+          !/nix/var/nix/db/big-lock
+          !/nix/var/nix/db/reserved
+        key: ${{ runner.os }}-nix-store
 
     - uses: cachix/install-nix-action@v15
       with:
@@ -40,6 +40,13 @@ jobs:
       continue-on-error: true
       run: |
         nix-store --import < store-cache 
+    
+    - name: Build agda
+      id: agda
+      run: |
+        v=$(nix-build -A agda)
+        echo "v is: $v"
+        echo "derivation=$v" >> $GITHUB_OUTPUT
 
     - name: Build agdaLedger
       id: agdaLedger
@@ -52,11 +59,9 @@ jobs:
     # - run: nix-build -A midnight.docs -j1
     - name: Export all derivations
       run: |
-        echo "Here is agdaLedger: ${{ steps.agdaLedger.outputs.derivation }}"
-        nix-store --query --requisites --include-outputs ${{ steps.agdaLedger.outputs.derivation }}
-        nix-store --export ${{ steps.agdaLedger.outputs.derivation }} > store-cache
-        ls
-        pwd 
+        agdaLedger=$(nix-store --query --requisites --include-outputs ${{ steps.agdaLedger.outputs.derivation }})
+        echo "Here is agdaLedger: $agdaLedger"
+        nix-store --export $agdaLedger > store-cache
 
     - name: Cache nix store
       uses: actions/cache@v3
