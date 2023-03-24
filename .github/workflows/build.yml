@@ -11,7 +11,9 @@ jobs:
         # Create with liberal rights, otherwise cache action will complain
         # about permission errors.
         sudo mkdir -p /nix/store
-        sudo chmod -R 777 /nix
+        sudo chmod 1775 /nix/store
+        sudo chown root:nixbld /nix/store
+        # sudo chmod -R 777 /nix
 
     - name: Cache nix env
       uses: actions/cache@v3
