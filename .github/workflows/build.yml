@@ -10,6 +10,7 @@ jobs:
     - run: |
         # Create with liberal rights, otherwise cache action will complain
         # about permission errors.
+        whoami
         sudo mkdir -p /nix/store
         sudo chmod 1775 /nix/store
         sudo chown root:nixbld /nix/store
