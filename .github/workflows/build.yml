@@ -21,21 +21,24 @@ jobs:
             trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
             substituters = https://cache.nixos.org/
 
-      - name: Build agda
-        id: agda
-        run: |
-          nix-instantiate -A agda
-          v=$(nix-build -A agda)
-          echo "v is: $v"
-          nix show-derivation $v
-
-      # - name: Build agdaLedger
-      #   id: agdaLedger
+      # - name: Build agda
+      #   id: agda
       #   run: |
-      #     nix-instantiate -A agdaLedger
-      #     v=$(nix-build -A agdaLedger)
+      #     nix-instantiate -A agda
+      #     v=$(nix-build -A agda)
       #     echo "v is: $v"
       #     nix show-derivation $v
+
+      - name: Build agdaLedger
+        id: agdaLedger
+        run: |
+          nix-instantiate -A agdaLedger
+          v=$(nix-build -A agdaLedger)
+          echo "v is: $v"
+          nix show-derivation $v
+          echo "now for agda:"
+          nix-instantiate -A agda
+          nix show-derivation $(nix-instantiate -A agda)
           
            
         # echo "derivation=$v" >> $GITHUB_OUTPUT
