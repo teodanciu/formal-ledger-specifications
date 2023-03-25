@@ -39,6 +39,10 @@ jobs:
           echo "now for agda:"
           nix-instantiate -A agda
           nix show-derivation $(nix-instantiate -A agda)
+          echo "now for agda3:"
+          nix-instantiate -A agda3
+          nix show-derivation $(nix-instantiate -A agda3)
+
           
            
         # echo "derivation=$v" >> $GITHUB_OUTPUT
