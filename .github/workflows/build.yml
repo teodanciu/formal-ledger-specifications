@@ -8,11 +8,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # - name: Cache install Nix packages
-      #   uses: rikhuijzer/cache-install@v1
-      #   with:
-      #     key: nix-${{ hashFiles('default.nix')}}
-      #     nix_file: 'default.nix'
+      - name: Cache install Nix packages
+        uses: rikhuijzer/cache-install@v1.0.9
+        with:
+          key: nix-${{ hashFiles('default.nix')}}
+          nix_file: 'default.nix'
       
       - uses: cachix/install-nix-action@v15
         with:
@@ -34,14 +34,21 @@ jobs:
         run: |
           nix-instantiate -A agdaLedger
           v=$(nix-build -A agdaLedger)
-          echo "v is: $v"
-          nix show-derivation $v
-          echo "now for agda:"
-          nix-instantiate -A agda
-          nix show-derivation $(nix-instantiate -A agda)
-          echo "now for agda3:"
-          nix-instantiate -A agda3
-          nix show-derivation $(nix-instantiate -A agda3)
+          echo "v is: $v!"
+          
+          
+          
+        # nix show-derivation $v
+
+
+
+
+        # echo "now for agda:"
+        # nix-instantiate -A agda
+        # nix show-derivation $(nix-instantiate -A agda)
+        # echo "now for agda3:"
+        # nix-instantiate -A agda3
+        # nix show-derivation $(nix-instantiate -A agda3)
 
           
            
