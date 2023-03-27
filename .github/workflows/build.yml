@@ -117,22 +117,22 @@ jobs:
       #     echo "${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}" > derivations
       #     echo "update=true" >> $GITHUB_OUTPUT
 
-      - name: Save derivation names 
-        id: cache-store-save
-        uses: actions/cache/save@v3
-        if: steps.export-derivations.outputs.updated == 'true'
-        with:
-          path: derivations 
-          key: derivations-${{github.run_id}}
+      # - name: Save derivation names 
+      #   id: cache-store-save
+      #   uses: actions/cache/save@v3
+      #   if: steps.export-derivations.outputs.updated == 'true'
+      #   with:
+      #     path: derivations 
+      #     key: derivations-${{github.run_id}}
 
-      - name: Save nix store
-        id: cache-store-save
-        uses: actions/cache/save@v3
-        if: steps.export-derivations.outputs.updated == 'true'
-        with:
-          path: |
-            store
-          key: cache-store-${{ runner.os }}-${{github.run_id}}
+      # - name: Save nix store
+      #   id: cache-store-save
+      #   uses: actions/cache/save@v3
+      #   if: steps.export-derivations.outputs.updated == 'true'
+      #   with:
+      #     path: |
+      #       store
+      #     key: cache-store-${{ runner.os }}-${{github.run_id}}
       
       # - name: Say if we have to export the store or not
       #   run: |
