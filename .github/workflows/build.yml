@@ -37,7 +37,9 @@ jobs:
           nix-instantiate -A agdaLedger
           v=$(nix-build -A agdaLedger)
           echo "v is: $v!!"
-          echo "derivation=$v" >> $GITHUB_OUTPUT
+          closure=$(nix-store --query --requisites --include-outputs $v)
+          echo "closure is: $closure"
+          echo "closure=$closure" >> $GITHUB_OUTPUT
       
       # - name: Build  ledger.executableSpec
       #   id: ledgerExecutableSpec
@@ -48,24 +50,25 @@ jobs:
       #     echo "derivation=$v" >> $GITHUB_OUTPUT
 
       - name: Export all derivations
+        id: export-derivations
         run: |
-          agdaLedger=$(nix-store --query --requisites --include-outputs ${{ steps.agdaLedger.outputs.derivation }})
-          echo "Here is agdaLedger: $agdaLedger"
           touch store
           mv store store2
-          nix-store --export $agdaLedger > store
-          if [[ $(md5sum store) == $(md5sum store2) ]]; then
-            echo "SAME!: $(md5sum store)"
+          nix-store --export ${{ steps.agdaLedger.outputs.closure}} > store
+          doUpdate="false"
+          if [[ $(md5sum store | cut -d' ' -f1) == $(md5sum store2 | cut -d' ' -f1) ]]; then
+            echo "SAME!: $(md5sum store | cut -d' ' -f1)"
           else 
-            echo "Different!: $(md5sum store) vs $(md5sum store2)"
+            echo "Different!: $(md5sum store | cut -d' ' -f1) vs $(md5sum store2 | cut -d' ' -f1)"
+            doUpdate="true"
           fi
-          echo "hashfiles store: ${{ hashFiles ('store') }}"
-          echo "hashfiles store2: ${{ hashFiles ('store2') }}"
+          echo "update=$doUpdate" >> $GITHUB_OUTPUT
+
 
       - name: Save nix store
         id: cache-store-save
         uses: actions/cache/save@v3
-        if: ${{ hashfiles ('store') != hashfiles('store2')}}''
+        if: steps.export-derivations.outputs.update == 'true'
         with:
           path: |
             store
