@@ -36,7 +36,7 @@ jobs:
         run: |
           v=$(nix-build -A agda)
           echo "v is: $v!"
-          closure=$(nix-store --query --requisites --include-outputs $v)
+          closure=$(nix-store --query --requisites --include-outputs $v | tr '\n' ' ')
           echo "closure is: $closure"
           echo "closure=$closure" >> $GITHUB_OUTPUT
 
