@@ -52,6 +52,16 @@ jobs:
           echo "closure is: $closure"
           echo "derivation=$v" >> $GITHUB_OUTPUT
           echo "closure=$closure" >> $GITHUB_OUTPUT
+      
+      - name: Build  ledger.executableSpec
+        id: ledgerExecutableSpec
+        run: |
+          v=$(nix-build -A ledger.executableSpec -j1)
+          echo "v is: $v"
+          closure=$(nix-store --query --requisites --include-outputs $v)
+          echo "closure is: $closure"
+          echo "derivation=$v" >> $GITHUB_OUTPUT
+          echo "closure=$closure" >> $GITHUB_OUTPUT
 
       - name: Restore derivations key
         id: cache-derivations
@@ -62,19 +72,11 @@ jobs:
           restore-keys: | 
             derivations-
 
-      # - name: Build  ledger.executableSpec
-      #   id: ledgerExecutableSpec
-      #   run: |
-      #     v=$(nix-build -A ledger.executableSpec -j1)
-      #     echo "v is: $v"
-      #     closure=$(nix-store --query --requisites --include-outputs $v)
-      #     echo "derivation=$v" >> $GITHUB_OUTPUT
-
       - name: Export all derivations
         id: export-derivations
         run: | # todo also re-export if the store doesn't exist
-          hashes="${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}}"
-          closures="${{ steps.agda.outputs.closure }} ${{ steps.agdaLedger.outputs.closure}}"
+          hashes="${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}}-${{steps.ledgerExecutableSpec.outputs.derivation}}"
+          closures="${{ steps.agda.outputs.closure }} ${{ steps.agdaLedger.outputs.closure}} ${{ steps.ledgerExecutableSpec.outputs.closure }}"
           touch derivations
           echo "hashes is: $hashes"
           echo "derivations file content:"
