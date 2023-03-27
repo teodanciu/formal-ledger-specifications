@@ -57,10 +57,12 @@ jobs:
 
       - name: Restore derivations key
         id: cache-derivations
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: derivations 
-          key: derivations-${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}} 
+          key: derivations-${{github.run_id}}
+          restore-keys: | 
+            derivations-
 
       # - name: Build  ledger.executableSpec
       #   id: ledgerExecutableSpec
@@ -97,12 +99,23 @@ jobs:
           path: |
             store
           key: cache-store-${{ runner.os }}-${{github.run_id}}
+          
+      - name: Save derivation names 
+        id: cache-store-save
+        uses: actions/cache/save@v3
+        if: steps.export-derivations.outputs.update == 'true'
+
+        with:
+          path: derivations 
+          key: derivations-${{github.run_id}}
       
       - name: Say if we have to export the store or not
         run: |
           touch derivations
           echo "Checking for: derivations-${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}} "
           echo "Was it a hit: ${{ steps.cache-derivations.outputs.cache-hit == 'true' }}"
+          echo "derivations file:"
+          cat derivations
 
       # - name: Store derivation names
       #   run: |
