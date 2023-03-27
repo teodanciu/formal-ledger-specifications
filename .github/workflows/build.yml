@@ -131,7 +131,7 @@ jobs:
       #     path: derivations 
       #     key: derivations-${{github.run_id}}
 
-      - name: Save nix store
+      - name: Upload nix store
         id: cache-derivations-save
         uses: actions/cache/save@v3
         if: steps.export-derivations.outputs.updated == 'true'
