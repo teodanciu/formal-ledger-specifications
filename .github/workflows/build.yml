@@ -91,13 +91,6 @@ jobs:
                 updated=true
           fi
           echo "updated=$updated" >> $GITHUB_OUTPUT
-          #if [[ $(md5sum store | cut -d' ' -f1) == $(md5sum store2 | cut -d' ' -f1) ]]; then
-          #  echo "SAME!: $(md5sum store | cut -d' ' -f1)"
-          #else 
-          #  echo "Different!: $(md5sum store | cut -d' ' -f1) vs $(md5sum store2 | cut -d' ' -f1)"
-          #  doUpdate="true"
-          #fi
-          # echo "${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}}" > derivations
 
       # - name: Export all derivations
       #   id: export-derivations
