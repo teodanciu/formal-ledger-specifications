@@ -62,7 +62,9 @@ jobs:
         run: |
           touch store
           mv store store2
+          du -sh store2
           nix-store --export ${{ steps.agda.outputs.closure }} ${{ steps.agdaLedger.outputs.closure}} > store
+          du -sh store
           doUpdate="false"
           if [[ $(md5sum store | cut -d' ' -f1) == $(md5sum store2 | cut -d' ' -f1) ]]; then
             echo "SAME!: $(md5sum store | cut -d' ' -f1)"
