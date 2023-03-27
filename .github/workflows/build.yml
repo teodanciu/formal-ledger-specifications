@@ -73,8 +73,8 @@ jobs:
       - name: Export all derivations
         id: export-derivations
         run: | # todo also re-export if the store doesn't exist
-          hashes=${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}}
-          closures=${{ steps.agda.outputs.closure }} ${{ steps.agdaLedger.outputs.closure}}
+          hashes="${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}}"
+          closures="${{ steps.agda.outputs.closure }} ${{ steps.agdaLedger.outputs.closure}}"
           touch derivations
           echo "hashes is: $hashes"
           echo "derivations file content:"
