@@ -32,7 +32,9 @@ jobs:
         run: |
           du -sh store || true
           nix-store --import < store
-      
+
+       # We have to build this explicitly, in order to cache it, 
+       # since it's not part of the static binary agdaLedger closure
       - name: Build agda
         id: agda
         run: |
@@ -53,7 +55,7 @@ jobs:
           echo "derivation=$v" >> $GITHUB_OUTPUT
           echo "closure=$closure" >> $GITHUB_OUTPUT
 
-      - name: Restore derivation names
+      - name: Restore derivations key
         id: cache-derivations
         uses: actions/cache@v3
         with:
@@ -70,13 +72,14 @@ jobs:
 
       - name: Export all derivations
         id: export-derivations
+        if: steps.cache-derivations.outputs.cache-hit != 'true'
         run: |
-          touch store
+          # touch store
           # mv store store2
           # du -sh store2
-          # nix-store --export ${{ steps.agda.outputs.closure }} ${{ steps.agdaLedger.outputs.closure}} > store
+          nix-store --export ${{ steps.agda.outputs.closure }} ${{ steps.agdaLedger.outputs.closure}} > store
           du -sh store
-          doUpdate="false"
+          doUpdate="true"
           #if [[ $(md5sum store | cut -d' ' -f1) == $(md5sum store2 | cut -d' ' -f1) ]]; then
           #  echo "SAME!: $(md5sum store | cut -d' ' -f1)"
           #else 
@@ -99,7 +102,7 @@ jobs:
         run: |
           touch derivations
           echo "Checking for: derivations-${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}} "
-          echo "Was it a hit: ${{ steps.cache-derivations.outputs.cache-hit }}"
+          echo "Was it a hit: ${{ steps.cache-derivations.outputs.cache-hit == 'true' }}"
 
       # - name: Store derivation names
       #   run: |
