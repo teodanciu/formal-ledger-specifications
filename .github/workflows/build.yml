@@ -38,6 +38,14 @@ jobs:
           v=$(nix-build -A agdaLedger)
           echo "v is: $v!!"
           echo "derivation=$v" >> $GITHUB_OUTPUT
+      
+      # - name: Build  ledger.executableSpec
+      #   id: ledgerExecutableSpec
+      #   run: |
+      #     v=$(nix-build -A ledger.executableSpec -j1)
+      #     echo "v is: $v"
+      #     closure=$(nix-store --query --requisites --include-outputs $v)
+      #     echo "derivation=$v" >> $GITHUB_OUTPUT
 
       - name: Export all derivations
         run: |
@@ -51,6 +59,8 @@ jobs:
           else 
             echo "Different!: $(md5sum store) vs $(md5sum store2)"
           fi
+          echo "hashfiles store: ${{ hashFiles ('store') }}"
+          echo "hashfiles store2: ${{ hashFiles ('store2') }}"
 
       - name: Save nix store
         id: cache-store-save
