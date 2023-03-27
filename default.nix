@@ -41,7 +41,7 @@ let
 in
 rec {
 
-  # agda  = agdaWithPkgs deps;
+  agda  = agdaWithPkgs deps;
   # agda2 = agdaWithPkgs [ agdaStdlib ];           # for working on stdlib-meta
   # agda3 = agdaWithPkgs (deps ++ [ agdaLedger ]); # for using ledger as a library
 

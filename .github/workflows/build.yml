@@ -21,7 +21,9 @@ jobs:
         with:
           path: |
               store 
-          key: ${{ runner.os }}-cache-store
+          key: cache-store-${{ runner.os }}-${{github.run_id}}
+          restore-keys: | 
+            cache-store-${{ runner.os }} 
 
       - name: Import cached nix store
         continue-on-error: true
@@ -41,16 +43,23 @@ jobs:
         run: |
           agdaLedger=$(nix-store --query --requisites --include-outputs ${{ steps.agdaLedger.outputs.derivation }})
           echo "Here is agdaLedger: $agdaLedger"
+          touch store
+          mv store store2
           nix-store --export $agdaLedger > store
-          du -sh store-cache 
+          if [[ $(md5sum store) == $(md5sum store2) ]]; then
+            echo "SAME!: $(md5sum store)"
+          else 
+            echo "Different!: $(md5sum store) vs $(md5sum store2)"
+          fi
 
       - name: Save nix store
         id: cache-store-save
         uses: actions/cache/save@v3
+        if: ${{ hashfiles ('store') != hashfiles('store2')}}''
         with:
           path: |
             store
-          key: ${{ steps.cache-store-restore.outputs.cache-primary-key }}
+          key: cache-store-${{ runner.os }}-${{github.run_id}}
 
 # jobs:
 #   build:
