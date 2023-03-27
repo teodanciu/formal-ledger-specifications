@@ -48,7 +48,7 @@ jobs:
         run: |
           v=$(nix-build -A agdaLedger)
           echo "v is: $v!"
-          closure=$(nix-store --query --requisites --include-outputs $v)
+          closure=$(nix-store --query --requisites --include-outputs $v | tr '\n' ' ')
           echo "closure is: $closure"
           echo "derivation=$v" >> $GITHUB_OUTPUT
           echo "closure=$closure" >> $GITHUB_OUTPUT
