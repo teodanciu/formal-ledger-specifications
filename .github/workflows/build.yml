@@ -66,7 +66,7 @@ jobs:
       # - name: Build midnight
       #   id: midnight 
       #   run: |
-      #     v=$(nix-build -A midnight -j1)
+      #     v=$(nix-build -A midnight -j1 | tr '\n' ' ')
       #     echo "v is: $v"
       #     closure=$(nix-store --query --requisites --include-outputs $v | tr '\n' ' ')
       #     echo "closure is: $closure"

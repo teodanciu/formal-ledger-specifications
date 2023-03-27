@@ -1,4 +1,4 @@
-# Formal ledger specifications
+# Formal ledger specifications!
 
 This repository contains the formal ledger specifications that are intended to eventually replace the existing formal specifications of the Cardano ledger found [here](https://github.com/input-output-hk/cardano-ledger). This project is currently incomplete and work in progress.
 
