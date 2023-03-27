@@ -72,34 +72,34 @@ jobs:
       #     closure=$(nix-store --query --requisites --include-outputs $v)
       #     echo "derivation=$v" >> $GITHUB_OUTPUT
 
-      - name: Export all derivations
-        id: export-derivations
-        run: | # todo also re-export if the store doesn't exist
-          hashes=${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}}
-          closures=${{ steps.agda.outputs.closure }} ${{ steps.agdaLedger.outputs.closure}}
-          touch derivations
-          echo "hashes is: $hashes"
-          echo "derivations file content:"
-          cat derivations
-          updated=false
-          if grep -qe ^$hashes derivations
-              then 
-                echo "No need to re-export the store"
-              else 
-                nix-store --export "$closures" > store
-                echo "Exported store of size: $(du -sh store)""
-                echo "$hashes" > derivations
-                echo "Wrote new derivations hashes: $(cat derivations)"
-                updated=true
-          fi
-          echo "updated=$updated" >> $GITHUB_OUTPUT
-          #if [[ $(md5sum store | cut -d' ' -f1) == $(md5sum store2 | cut -d' ' -f1) ]]; then
-          #  echo "SAME!: $(md5sum store | cut -d' ' -f1)"
-          #else 
-          #  echo "Different!: $(md5sum store | cut -d' ' -f1) vs $(md5sum store2 | cut -d' ' -f1)"
-          #  doUpdate="true"
-          #fi
-          # echo "${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}}" > derivations
+      # - name: Export all derivations
+      #   id: export-derivations
+      #   run: | # todo also re-export if the store doesn't exist
+      #     hashes=${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}}
+      #     closures=${{ steps.agda.outputs.closure }} ${{ steps.agdaLedger.outputs.closure}}
+      #     touch derivations
+      #     echo "hashes is: $hashes"
+      #     echo "derivations file content:"
+      #     cat derivations
+      #     updated=false
+      #     if grep -qe ^$hashes derivations
+      #         then 
+      #           echo "No need to re-export the store"
+      #         else 
+      #           nix-store --export "$closures" > store
+      #           echo "Exported store of size: $(du -sh store)""
+      #           echo "$hashes" > derivations
+      #           echo "Wrote new derivations hashes: $(cat derivations)"
+      #           updated=true
+      #     fi
+      #     echo "updated=$updated" >> $GITHUB_OUTPUT
+      #     #if [[ $(md5sum store | cut -d' ' -f1) == $(md5sum store2 | cut -d' ' -f1) ]]; then
+      #     #  echo "SAME!: $(md5sum store | cut -d' ' -f1)"
+      #     #else 
+      #     #  echo "Different!: $(md5sum store | cut -d' ' -f1) vs $(md5sum store2 | cut -d' ' -f1)"
+      #     #  doUpdate="true"
+      #     #fi
+      #     # echo "${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}}" > derivations
 
       # - name: Export all derivations
       #   id: export-derivations
