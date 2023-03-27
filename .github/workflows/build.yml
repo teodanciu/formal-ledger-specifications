@@ -72,17 +72,17 @@ jobs:
         id: export-derivations
         run: |
           touch store
-          mv store store2
-          du -sh store2
-          nix-store --export ${{ steps.agda.outputs.closure }} ${{ steps.agdaLedger.outputs.closure}} > store
+          # mv store store2
+          # du -sh store2
+          # nix-store --export ${{ steps.agda.outputs.closure }} ${{ steps.agdaLedger.outputs.closure}} > store
           du -sh store
           doUpdate="false"
-          if [[ $(md5sum store | cut -d' ' -f1) == $(md5sum store2 | cut -d' ' -f1) ]]; then
-            echo "SAME!: $(md5sum store | cut -d' ' -f1)"
-          else 
-            echo "Different!: $(md5sum store | cut -d' ' -f1) vs $(md5sum store2 | cut -d' ' -f1)"
-            doUpdate="true"
-          fi
+          #if [[ $(md5sum store | cut -d' ' -f1) == $(md5sum store2 | cut -d' ' -f1) ]]; then
+          #  echo "SAME!: $(md5sum store | cut -d' ' -f1)"
+          #else 
+          #  echo "Different!: $(md5sum store | cut -d' ' -f1) vs $(md5sum store2 | cut -d' ' -f1)"
+          #  doUpdate="true"
+          #fi
           echo "update=$doUpdate" >> $GITHUB_OUTPUT
 
 
@@ -97,6 +97,7 @@ jobs:
       
       - name: Say if we have to export the store or not
         run: |
+          echo "x" > derivations
           echo "Checking for: derivations-${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}} "
           echo "Was it a hit: ${{ steps.cache-derivations.outputs.cache-hit }}"
 
