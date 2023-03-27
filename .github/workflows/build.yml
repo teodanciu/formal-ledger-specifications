@@ -58,10 +58,20 @@ jobs:
         run: |
           v=$(nix-build -A ledger -j1)
           echo "v is: $v"
-          closure=$(nix-store --query --requisites --include-outputs $v | tr '\n' ' ')
+          closure="$(nix-store --query --requisites --include-outputs $v | tr '\n' ' ')"
           echo "closure is: $closure"
           echo "derivation=$v" >> $GITHUB_OUTPUT
           echo "closure=$closure" >> $GITHUB_OUTPUT      
+      
+      # - name: Build midnight
+      #   id: midnight 
+      #   run: |
+      #     v=$(nix-build -A midnight -j1)
+      #     echo "v is: $v"
+      #     closure=$(nix-store --query --requisites --include-outputs $v | tr '\n' ' ')
+      #     echo "closure is: $closure"
+      #     echo "derivation=$v" >> $GITHUB_OUTPUT
+      #     echo "closure=$closure" >> $GITHUB_OUTPUT      
           
       - name: Restore derivations key
         id: cache-derivations
@@ -75,8 +85,8 @@ jobs:
       - name: Export all derivations
         id: export-derivations
         run: | # todo also re-export if the store doesn't exist
-          hashes="${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}}-${{steps.ledger.outputs.derivation}}"
-          closures="${{ steps.agda.outputs.closure }} ${{ steps.agdaLedger.outputs.closure}} ${{ steps.ledger.outputs.closure }}"
+          hashes="${{steps.agda.outputs.derivation}}-${{steps.agdaLedger.outputs.derivation}}-${{steps.ledger.outputs.derivation}}-${{steps.ledger.outputs.derivation}}"
+          closures="${{steps.agda.outputs.closure}} ${{steps.agdaLedger.outputs.closure}} ${{ steps.ledger.outputs.closure}} ${{steps.midnight.outputs.closure}}"
           touch derivations
           echo "hashes is: $hashes"
           echo "derivations file content:"
