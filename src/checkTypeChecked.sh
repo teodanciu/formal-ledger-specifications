@@ -15,7 +15,7 @@ done
 for file in $(find . -name '*.lagda')
 do
     if ! [ -f "${file%.lagda}.agdai" ]; then
-        echo "${file%.lagda}.agdai doesn't exist!"
+        echo "${file%.lagda}.agdai doesn't exist"
         res=1
     fi
 done
