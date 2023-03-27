@@ -8,33 +8,84 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Cache install Nix packages
-        uses: rikhuijzer/cache-install@v1.0.9
-        with:
-          key: nix-${{ hashFiles('default.nix')}}
-          nix_file: 'default.nix'
-      
       - uses: cachix/install-nix-action@v15
         with:
           nix_path: nixpkgs=channel:nixos-unstable
           extra_nix_config: |
             trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
             substituters = https://cache.nixos.org/
+        
+      - name: Restore store
+        id: cache-store-restore
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+              store 
+          key: ${{ runner.os }}-cache-store
 
-      # - name: Build agda
-      #   id: agda
-      #   run: |
-      #     nix-instantiate -A agda
-      #     v=$(nix-build -A agda)
-      #     echo "v is: $v"
-      #     nix show-derivation $v
+      - name: Import cached nix store
+        continue-on-error: true
+        run: |
+          du -sh store || true
+          nix-store --import < store
 
       - name: Build agdaLedger
         id: agdaLedger
         run: |
           nix-instantiate -A agdaLedger
           v=$(nix-build -A agdaLedger)
-          echo "v is: $v!"
+          echo "v is: $v!!"
+          echo "derivation=$v" >> $GITHUB_OUTPUT
+
+      - name: Export all derivations
+        run: |
+          agdaLedger=$(nix-store --query --requisites --include-outputs ${{ steps.agdaLedger.outputs.derivation }})
+          echo "Here is agdaLedger: $agdaLedger"
+          nix-store --export $agdaLedger > store
+          du -sh store-cache 
+
+      - name: Save nix store
+        id: cache-store-save
+        uses: actions/cache/save@v3
+        with:
+          path: |
+            store
+          key: ${{ steps.cache-store-restore.outputs.cache-primary-key }}
+
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - uses: actions/checkout@v3
+
+#       # - name: Cache install Nix packages
+#       #   uses: rikhuijzer/cache-install@v1.0.9
+#       #   with:
+#       #     key: nix-${{ hashFiles('default.nix')}}
+#       #     nix_file: 'default.nix'
+      
+#       - uses: cachix/install-nix-action@v15
+#         with:
+#           nix_path: nixpkgs=channel:nixos-unstable
+#           extra_nix_config: |
+#             trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+#             substituters = https://cache.nixos.org/
+
+#       # - name: Build agda
+#       #   id: agda
+#       #   run: |
+#       #     nix-instantiate -A agda
+#       #     v=$(nix-build -A agda)
+#       #     echo "v is: $v"
+#       #     nix show-derivation $v
+
+#       - name: Build agdaLedger
+#         id: agdaLedger
+#         run: |
+#           nix-instantiate -A agdaLedger
+#           v=$(nix-build -A agdaLedger)
+#           echo "v is: $v!"
           
           
           
