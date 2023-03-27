@@ -30,13 +30,21 @@ jobs:
         run: |
           du -sh store || true
           nix-store --import < store
+      
+      - name: Build agda
+        id: agda
+        run: |
+          v=$(nix-build -A agda)
+          echo "v is: $v!"
+          closure=$(nix-store --query --requisites --include-outputs $v)
+          echo "closure is: $closure"
+          echo "closure=$closure" >> $GITHUB_OUTPUT
 
       - name: Build agdaLedger
         id: agdaLedger
         run: |
-          nix-instantiate -A agdaLedger
           v=$(nix-build -A agdaLedger)
-          echo "v is: $v!!"
+          echo "v is: $v!"
           closure=$(nix-store --query --requisites --include-outputs $v)
           echo "closure is: $closure"
           echo "closure=$closure" >> $GITHUB_OUTPUT
@@ -54,7 +62,7 @@ jobs:
         run: |
           touch store
           mv store store2
-          nix-store --export ${{ steps.agdaLedger.outputs.closure}} > store
+          nix-store --export ${{ steps.agda.outputs.closure }} ${{ steps.agdaLedger.outputs.closure}} > store
           doUpdate="false"
           if [[ $(md5sum store | cut -d' ' -f1) == $(md5sum store2 | cut -d' ' -f1) ]]; then
             echo "SAME!: $(md5sum store | cut -d' ' -f1)"
