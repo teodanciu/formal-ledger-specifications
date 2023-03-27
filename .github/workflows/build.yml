@@ -74,48 +74,74 @@ jobs:
 
       - name: Export all derivations
         id: export-derivations
-        if: steps.cache-derivations.outputs.cache-hit != 'true'
-        run: |
-          # touch store
-          # mv store store2
-          # du -sh store2
-          nix-store --export ${{ steps.agda.outputs.closure }} ${{ steps.agdaLedger.outputs.closure}} > store
-          du -sh store
-          doUpdate="true"
+        run: | # todo also re-export if the store doesn't exist
+          hashes=${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}}
+          closures=${{ steps.agda.outputs.closure }} ${{ steps.agdaLedger.outputs.closure}}
+          touch derivations
+          echo "hashes is: $hashes"
+          echo "derivations file content:"
+          cat derivations
+          updated=false
+          if grep -qe ^$hashes derivations
+              then 
+                echo "No need to re-export the store"
+              else 
+                nix-store --export "$closures" > store
+                echo "Exported store of size: $(du -sh store)""
+                echo "$hashes" > derivations
+                echo "Wrote new derivations hashes: $(cat derivations)"
+                updated=true
+          fi
+          echo "updated=$updated" >> $GITHUB_OUTPUT
           #if [[ $(md5sum store | cut -d' ' -f1) == $(md5sum store2 | cut -d' ' -f1) ]]; then
           #  echo "SAME!: $(md5sum store | cut -d' ' -f1)"
           #else 
           #  echo "Different!: $(md5sum store | cut -d' ' -f1) vs $(md5sum store2 | cut -d' ' -f1)"
           #  doUpdate="true"
           #fi
-          echo "update=$doUpdate" >> $GITHUB_OUTPUT
+          # echo "${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}}" > derivations
 
+      # - name: Export all derivations
+      #   id: export-derivations
+      #   run: |
+      #     # touch store
+      #     # mv store store2
+      #     # du -sh store2
+      #     nix-store --export ${{ steps.agda.outputs.closure }} ${{ steps.agdaLedger.outputs.closure}} > store
+      #     du -sh store
+      #     # doUpdate="true"
+      #     #if [[ $(md5sum store | cut -d' ' -f1) == $(md5sum store2 | cut -d' ' -f1) ]]; then
+      #     #  echo "SAME!: $(md5sum store | cut -d' ' -f1)"
+      #     #else 
+      #     #  echo "Different!: $(md5sum store | cut -d' ' -f1) vs $(md5sum store2 | cut -d' ' -f1)"
+      #     #  doUpdate="true"
+      #     #fi
+      #     echo "${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}" > derivations
+      #     echo "update=true" >> $GITHUB_OUTPUT
+
+      - name: Save derivation names 
+        id: cache-store-save
+        uses: actions/cache/save@v3
+        if: steps.export-derivations.outputs.updated == 'true'
+        with:
+          path: derivations 
+          key: derivations-${{github.run_id}}
 
       - name: Save nix store
         id: cache-store-save
         uses: actions/cache/save@v3
-        if: steps.export-derivations.outputs.update == 'true'
+        if: steps.export-derivations.outputs.updated == 'true'
         with:
           path: |
             store
           key: cache-store-${{ runner.os }}-${{github.run_id}}
-          
-      - name: Save derivation names 
-        id: cache-store-save
-        uses: actions/cache/save@v3
-        if: steps.export-derivations.outputs.update == 'true'
-
-        with:
-          path: derivations 
-          key: derivations-${{github.run_id}}
       
-      - name: Say if we have to export the store or not
-        run: |
-          touch derivations
-          echo "Checking for: derivations-${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}} "
-          echo "Was it a hit: ${{ steps.cache-derivations.outputs.cache-hit == 'true' }}"
-          echo "derivations file:"
-          cat derivations
+      # - name: Say if we have to export the store or not
+      #   run: |
+      #     echo "Checking for: derivations-${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}} "
+      #     echo "Was it a hit: ${{ steps.cache-derivations.outputs.cache-hit == 'true' }}"
+      #     echo "derivations file:"
+      #     cat derivations
 
       # - name: Store derivation names
       #   run: |
