@@ -97,7 +97,7 @@ jobs:
       
       - name: Say if we have to export the store or not
         run: |
-          echo "x" > derivations
+          touch derivations
           echo "Checking for: derivations-${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}} "
           echo "Was it a hit: ${{ steps.cache-derivations.outputs.cache-hit }}"
 
