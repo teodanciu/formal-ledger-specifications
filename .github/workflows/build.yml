@@ -92,7 +92,7 @@ jobs:
           echo "derivations file content:"
           cat derivations
           updated=false
-          if grep -qe ^$hashes derivations
+          if grep -qe "^$hashes" derivations
               then 
                 echo "No need to re-export the store"
               else 
