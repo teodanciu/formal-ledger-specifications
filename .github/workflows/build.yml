@@ -56,9 +56,9 @@ jobs:
       - name: Build ledger
         id: ledger 
         run: |
-          v=$(nix-build -A ledger -j1)
+          v=$(nix-build -A ledger -j1 | tr '\n' ' ')
           echo "v is: $v"
-          closure="$(nix-store --query --requisites --include-outputs $v | tr '\n' ' ')"
+          closure=$(nix-store --query --requisites --include-outputs $v | tr '\n' ' ')
           echo "closure is: $closure"
           echo "derivation=$v" >> $GITHUB_OUTPUT
           echo "closure=$closure" >> $GITHUB_OUTPUT      
