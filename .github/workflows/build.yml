@@ -84,7 +84,7 @@ jobs:
               then 
                 echo "No need to re-export the store"
               else 
-                nix-store --export "$closures" > store
+                nix-store --export $closures > store
                 echo "Exported store of size: $(du -sh store)"
                 echo "$hashes" > derivations
                 echo "Wrote new derivations hashes: $(cat derivations)"
