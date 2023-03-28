@@ -38,9 +38,7 @@ jobs:
         id: agda
         run: |
           v=$(nix-build -A agda)
-          echo "v is: $v!"
           closure=$(nix-store --query --requisites --include-outputs $v | tr '\n' ' ')
-          echo "closure is: $closure"
           echo "derivation=$v" >> $GITHUB_OUTPUT
           echo "closure=$closure" >> $GITHUB_OUTPUT
 
@@ -48,9 +46,7 @@ jobs:
         id: agdaLedger
         run: |
           v=$(nix-build -A agdaLedger)
-          echo "v is: $v!"
           closure=$(nix-store --query --requisites --include-outputs $v | tr '\n' ' ')
-          echo "closure is: $closure"
           echo "derivation=$v" >> $GITHUB_OUTPUT
           echo "closure=$closure" >> $GITHUB_OUTPUT
       
@@ -58,9 +54,7 @@ jobs:
         id: ledger 
         run: |
           v=$(nix-build -A ledger -j1 | tr '\n' ' ')
-          echo "v is: $v"
           closure=$(nix-store --query --requisites --include-outputs $v | tr '\n' ' ')
-          echo "closure is: $closure"
           echo "derivation=$v" >> $GITHUB_OUTPUT
           echo "closure=$closure" >> $GITHUB_OUTPUT      
       
@@ -68,30 +62,16 @@ jobs:
         id: midnight
         run: |
           v=$(nix-build -A midnight -j1 | tr '\n' ' ')
-          echo "v is: $v"
           closure=$(nix-store --query --requisites --include-outputs $v | tr '\n' ' ')
-          echo "closure is: $closure"
           echo "derivation=$v" >> $GITHUB_OUTPUT
           echo "closure=$closure" >> $GITHUB_OUTPUT
           
-      # - name: Restore derivations key
-      #   id: cache-derivations
-      #   uses: actions/cache/restore@v3
-      #   with:
-      #     path: derivations 
-      #     key: derivations-${{github.run_id}}
-      #     restore-keys: | 
-      #       derivations-
-
       - name: Export all derivations
         id: export-derivations
         run: | # todo also re-export if the store doesn't exist
           hashes="${{steps.agda.outputs.derivation}}-${{steps.agdaLedger.outputs.derivation}}-${{steps.ledger.outputs.derivation}}-${{steps.midnight.outputs.derivation}}"
           closures="${{steps.agda.outputs.closure}} ${{steps.agdaLedger.outputs.closure}} ${{ steps.ledger.outputs.closure}} ${{steps.midnight.outputs.closure}}"
           touch derivations
-          echo "hashes is: $hashes"
-          echo "derivations file content:"
-          cat derivations
           updated=false
           if grep -qe "^$hashes" derivations
               then 
@@ -105,32 +85,6 @@ jobs:
           fi
           echo "updated=$updated" >> $GITHUB_OUTPUT
 
-      # - name: Export all derivations
-      #   id: export-derivations
-      #   run: |
-      #     # touch store
-      #     # mv store store2
-      #     # du -sh store2
-      #     nix-store --export ${{ steps.agda.outputs.closure }} ${{ steps.agdaLedger.outputs.closure}} > store
-      #     du -sh store
-      #     # doUpdate="true"
-      #     #if [[ $(md5sum store | cut -d' ' -f1) == $(md5sum store2 | cut -d' ' -f1) ]]; then
-      #     #  echo "SAME!: $(md5sum store | cut -d' ' -f1)"
-      #     #else 
-      #     #  echo "Different!: $(md5sum store | cut -d' ' -f1) vs $(md5sum store2 | cut -d' ' -f1)"
-      #     #  doUpdate="true"
-      #     #fi
-      #     echo "${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}" > derivations
-      #     echo "update=true" >> $GITHUB_OUTPUT
-
-      # - name: Save derivation names 
-      #   id: cache-store-save
-      #   uses: actions/cache/save@v3
-      #   if: steps.export-derivations.outputs.updated == 'true'
-      #   with:
-      #     path: derivations 
-      #     key: derivations-${{github.run_id}}
-
       - name: Upload nix store
         id: cache-derivations-save
         uses: actions/cache/save@v3
@@ -140,247 +94,3 @@ jobs:
             store
             derivations
           key: cache-store-${{ runner.os }}-${{github.run_id}}
-      
-      # - name: Say if we have to export the store or not
-      #   run: |
-      #     echo "Checking for: derivations-${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}} "
-      #     echo "Was it a hit: ${{ steps.cache-derivations.outputs.cache-hit == 'true' }}"
-      #     echo "derivations file:"
-      #     cat derivations
-
-      # - name: Store derivation names
-      #   run: |
-      #     echo ${{ steps.agda.outputs.derivation }}-${{ steps.agdaLedger.outputs.derivation}} > derivations
-  
-      # - name: Save derivation names
-      #   id: cache-store-save
-      #   uses: actions/cache/save@v3
-      #   with:
-      #     path: |
-      #       derivations 
-      #     key: derivations 
-
-# jobs:
-#   build:
-#     runs-on: ubuntu-latest
-
-#     steps:
-#       - uses: actions/checkout@v3
-
-#       # - name: Cache install Nix packages
-#       #   uses: rikhuijzer/cache-install@v1.0.9
-#       #   with:
-#       #     key: nix-${{ hashFiles('default.nix')}}
-#       #     nix_file: 'default.nix'
-      
-#       - uses: cachix/install-nix-action@v15
-#         with:
-#           nix_path: nixpkgs=channel:nixos-unstable
-#           extra_nix_config: |
-#             trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
-#             substituters = https://cache.nixos.org/
-
-#       # - name: Build agda
-#       #   id: agda
-#       #   run: |
-#       #     nix-instantiate -A agda
-#       #     v=$(nix-build -A agda)
-#       #     echo "v is: $v"
-#       #     nix show-derivation $v
-
-#       - name: Build agdaLedger
-#         id: agdaLedger
-#         run: |
-#           nix-instantiate -A agdaLedger
-#           v=$(nix-build -A agdaLedger)
-#           echo "v is: $v!"
-          
-          
-          
-        # nix show-derivation $v
-
-
-
-
-        # echo "now for agda:"
-        # nix-instantiate -A agda
-        # nix show-derivation $(nix-instantiate -A agda)
-        # echo "now for agda3:"
-        # nix-instantiate -A agda3
-        # nix show-derivation $(nix-instantiate -A agda3)
-
-          
-           
-        # echo "derivation=$v" >> $GITHUB_OUTPUT
-
-# jobs:
-#   tests:
-#     runs-on: ubuntu-latest
-#     steps:
-#     - uses: actions/checkout@v3
-
-#     - run: |
-#         # Create with liberal rights, otherwise cache action will complain
-#         # about permission errors.
-#         whoami
-#         sudo mkdir -p /nix/store /nix/var
-#         sudo chmod -R 777 /nix
-
-#     - name: Cache nix env
-#       uses: actions/cache@v3
-#       with:
-#         path: |
-#           /nix/store/**
-#           /nix/var/nix/*/*
-#           /nix/var/nix/db/*
-#           /nix/var/nix/db/*/**
-#           !/nix/var/nix/daemon-socket/socket
-#           !/nix/var/nix/userpool/*
-#           !/nix/var/nix/gc.lock
-#           !/nix/var/nix/db/big-lock
-#           !/nix/var/nix/db/reserved
-#         key: ${{ runner.os }}-nix-store
-
-#     - uses: cachix/install-nix-action@v15
-#       with:
-#         nix_path: nixpkgs=channel:nixos-unstable
-#         extra_nix_config: |
-#           trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
-#           substituters = https://cache.nixos.org/
-    
-#     - name: Import cached nix store
-#       continue-on-error: true
-#       run: |
-#         nix-store --import < store-cache 
-    
-#     - name: Build agda
-#       id: agda
-#       run: |
-#         v=$(nix-build -A agda)
-#         echo "v is: $v"
-#         nix show-derivation $v
-#         echo "derivation=$v" >> $GITHUB_OUTPUT
-
-#     - name: Build agdaLedger
-#       id: agdaLedger
-#       run: |
-#         v=$(nix-build -A agdaLedger)
-#         nix show-derivation $v
-#         echo "derivation=$v" >> $GITHUB_OUTPUT
-#     # - run: nix-build -A ledger.executableSpec -j1
-#     # - run: nix-build -A ledger.docs -j1
-#     # - run: nix-build -A midnight.executableSpec -j1
-#     # - run: nix-build -A midnight.docs -j1
-#     - name: Export all derivations
-#       run: |
-#         agdaLedger=$(nix-store --query --requisites --include-outputs ${{ steps.agdaLedger.outputs.derivation }})
-#         agda=$(nix-store --query --requisites --include-outputs ${{ steps.agda.outputs.derivation }})
-#         echo "Here is agdaLedger: $agdaLedger"
-#         echo "Here is agda: $agda"
-#         nix-store --export $agda $agdaLedger > store-cache
-#         du -sh store-cache
-
-#     - name: Cache nix store
-#       uses: actions/cache@v3
-#       with: 
-#         key: nix-cache-${{ runner.os }}
-#         path: store-cache
-# jobs:
-#   build:
-#     runs-on: ubuntu-latest
-
-#     steps:
-#       - uses: actions/checkout@v3
-      
-#       - name: install nix
-#         uses: cachix/install-nix-action@v16
-#         with:
-#           nix_path: nixpkgs=channel:nixos-unstable
-#           extra_nix_config: |
-#             trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
-#             substituters = https://cache.nixos.org/
-#             # save space on disk and in cache
-#             auto-optimise-store = true
-#             # keep all store paths necessary to build the outputs
-#             keep-outputs = true
-#             keep-derivations = true
-
-#       - name: cache nix store
-#         id: cache-nix-store
-#         uses: actions/cache@v3
-#         with:
-#           key: nix-cache-${{ runner.os }}
-#           restore-keys: |
-#             nix-cache-
-#           path: |
-#             nix_store_dir
-#             nix_store_db.sqlite
-
-#       - name: restore cached nix store
-#         run: |
-#             if [ -e nix_store_db.sqlite ]; then
-#               sudo systemctl stop nix-daemon
-#               # put cached store paths back in their proper locations
-#               sudo rm -rf /nix/store /nix/var/nix/db/db.sqlite
-#               sudo mv nix_store_dir /nix/store
-#               sudo cp nix_store_db.sqlite /nix/var/nix/db/db.sqlite
-#               # fix store permissions
-#               sudo chmod 1775 /nix/store
-#               sudo chown root:nixbld /nix/store
-#               sudo chmod 0644 /nix/var/nix/db/db.sqlite
-#               sudo chown -R root:root /nix/store /nix/var/nix/db/db.sqlite
-#               sudo systemctl start nix-daemon
-#             fi
-
-#       - run: nix-build -A agdaLedger
-#       - run: nix-build -A ledger.executableSpec -j1
-#       - run: nix-build -A ledger.docs -j1
-#       - run: nix-build -A midnight.executableSpec -j1
-#       - run: nix-build -A midnight.docs -j1
-      
-#       - name: prepare nix store for caching
-#         run: |
-#           # delete old stuff not relevant to this build
-#           nix-collect-garbage
-#           sudo systemctl stop nix-daemon
-#           # move store to a place where the cache action can read it
-#           sudo mv /nix/store nix_store_dir
-#           sudo mv /nix/var/nix/db/db.sqlite nix_store_db.sqlite
-          
-
-
-  # build2:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Cache nix env take N+1
-  #       uses: actions/cache@v3
-  #       id: nix-cache
-  #       with:
-  #           path: |
-  #               /tmp/nix-cache
-  #           key: ${{ runner.os }}-nix-cache
-  #     - name: cache hit
-  #       if: steps.nix-cache.outputs.cache-hit == 'true'
-  #       run: |
-  #           sudo chown -R root /tmp/nix-cache
-  #           sudo cp -fRT /tmp/nix-cache/ /nix/
-  #           # sudo pkill nix-daemon
-  #     - uses: actions/checkout@v3
-  #     - uses: cachix/install-nix-action@v15
-  #       with:
-  #         nix_path: nixpkgs=channel:nixos-unstable
-  #         extra_nix_config: |
-  #           trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
-  #           substituters = https://cache.nixos.org/
-  #     - run: nix-build -A agdaLedger
-  #     - run: nix-build -A ledger.executableSpec -j1 
-  #     - run: nix-build -A ledger.docs -j1
-  #     - run: nix-build -A midnight.executableSpec -j1
-  #     - run: nix-build -A midnight.docs -j1
-  #     - run: |
-  #         sudo cp -r /nix /tmp/nix-cache
-  #         sudo rm -rf /tmp/nix-cache/var/nix/daemon-socket/socket
-  #         sudo rm -rf /tmp/nix-cache/var/nix/userpool
-  #         sudo rm -rf /tmp/nix-cache/var/nix/gc.lock
-  #         sudo rm -rf /tmp/nix-cache/var/nix/db/big-lock
-  #         sudo rm -rf /tmp/nix-cache/var/nix/db/reserved
