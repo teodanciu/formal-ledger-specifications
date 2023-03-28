@@ -68,12 +68,13 @@ jobs:
           
       - name: Export all derivations
         id: export-derivations
-        run: | # todo also re-export if the store doesn't exist
+        run: |
           hashes="${{steps.agda.outputs.derivation}}-${{steps.agdaLedger.outputs.derivation}}-${{steps.ledger.outputs.derivation}}-${{steps.midnight.outputs.derivation}}"
           closures="${{steps.agda.outputs.closure}} ${{steps.agdaLedger.outputs.closure}} ${{ steps.ledger.outputs.closure}} ${{steps.midnight.outputs.closure}}"
           touch derivations
           updated=false
-          if grep -qe "^$hashes" derivations
+          # export only if the hashes changed or the store does not exist for some reason
+          if grep -qe "^$hashes" derivations && [[ -f store ]]
               then 
                 echo "No need to re-export the store"
               else 
