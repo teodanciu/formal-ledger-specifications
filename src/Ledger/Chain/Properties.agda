@@ -5,12 +5,12 @@ open import Data.Nat.Properties hiding (_≟_)
 open import Ledger.Prelude
 open import Ledger.Transaction
 
-module Ledger.Chain.Properties (txs : _) (open TransactionStructure txs) where
+module Ledger.Chain.Properties (⋯ : _) (open TransactionStructure ⋯) where
 
-open import Ledger.Ratify txs
-open import Ledger.Chain txs
-open import Ledger.Ledger txs
-open import Ledger.Ratify.Properties txs
+open import Ledger.Ratify ⋯
+open import Ledger.Chain ⋯
+open import Ledger.Ledger ⋯
+open import Ledger.Ratify.Properties ⋯
 
 -- TODO: get rid of all of those arguments once we have them globally
 
@@ -25,7 +25,7 @@ module _ (accepted? : ∀ Γ es st → Dec (accepted Γ es st))
         open RatifyState fut using (removed) renaming (es to esW)
         open LState ls; open CertState certState; open Acnt acnt
         es         = record esW { withdrawals = ∅ᵐ }
-        govSt'     = filter (¬? ∘ (_∈? mapˢ proj₁ removed) ∘ proj₁) govSt
+        govSt'     = filter (¬? ∘ (_∈? map proj₁ removed) ∘ proj₁) govSt
         (_ , pFut) = RATIFY-total accepted? expired? delayed? Computational-ENACT
           {record { currentEpoch = e ; treasury = treasury
                   ; GState gState ; NewEpochEnv Γ }} {⟦ es , ∅ , false ⟧ʳ} {govSt'}

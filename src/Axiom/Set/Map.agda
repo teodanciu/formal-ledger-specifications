@@ -1,7 +1,7 @@
 {-# OPTIONS --safe --no-import-sorts #-}
 {-# OPTIONS -v allTactics:100 #-}
 
-open import Agda.Primitive using (lzero) renaming (Set to Type)
+open import Agda.Primitive renaming (Set to Type)
 open import Axiom.Set using (Theory)
 
 module Axiom.Set.Map (th : Theory {lzero}) where
@@ -13,14 +13,16 @@ open import Axiom.Set.Properties th
 
 open import Prelude hiding (filter)
 
-open import Data.Product using (map₁)
-open import Data.Sum using (map₂)
+import Data.Product
+import Data.Sum
 import Relation.Binary.PropositionalEquality as I
-open import Data.List.Ext.Properties using (AllPairs⇒≡∨R∨Rᵒᵖ)
-open import Data.Product.Properties using (×-≡,≡→≡; ×-≡,≡←≡)
+open import Data.These
+open import Data.List.Ext.Properties
+open import Data.Product.Properties
+open import Data.Maybe.Base using () renaming (map to map?)
 open import Data.Maybe.Properties using (just-injective)
-open import Interface.DecEq using (DecEq; _≟_)
-open import Relation.Unary using (Decidable)
+open import Interface.DecEq
+open import Relation.Unary using () renaming (Decidable to Decidable¹)
 
 open Equivalence
 
@@ -28,7 +30,6 @@ open import Tactic.AnyOf
 open import Tactic.Assumption
 open import Tactic.Defaults
 open import Tactic.Helpers
-open import Tactic.ByEq
 
 -- Because of missing macro hygiene, we have to copy&paste this.
 -- c.f. https://github.com/agda/agda/issues/3819
@@ -137,8 +138,8 @@ disj-∪ m m' disj = m ˢ ∪ m' ˢ , λ h h' → case ∈⇔P h , ∈⇔P h' of
 filterᵐ : {P : A × B → Type} → specProperty P → Map A B → Map A B
 filterᵐ sp-P m = filter sp-P (m ˢ) , ⊆-left-unique filter-⊆ (proj₂ m)
 
-filterᵐ-finite : {P : A × B → Type} → (sp : specProperty P) → Decidable P
-  → finite (m ˢ) → finite (filterᵐ sp m ˢ)
+filterᵐ-finite : {P : A × B → Type} → (sp : specProperty P) → Decidable¹ P →
+  finite (m ˢ) → finite (filterᵐ sp m ˢ)
 filterᵐ-finite = filter-finite
 
 singletonᵐ : A → B → Map A B
@@ -160,8 +161,8 @@ module Unionᵐ (sp-∈ : spec-∈ A) where
 
   disjoint-∪ᵐˡ-∪ : (H : disjoint (dom R) (dom R')) → R ∪ᵐˡ' R' ≡ᵉ R ∪ R'
   disjoint-∪ᵐˡ-∪ disj = from ≡ᵉ⇔≡ᵉ' λ _ → mk⇔
-    (∈-∪⁺ ∘′ map₂ (proj₂ ∘′ ∈⇔P) ∘′ ∈⇔P)
-    (∈⇔P ∘′ map₂ (to ∈-filter ∘′ (λ h → (flip disj (∈-map⁺'' h)) , h)) ∘ ∈⇔P)
+    (∈-∪⁺ ∘′ Data.Sum.map₂ (proj₂ ∘′ ∈⇔P) ∘′ ∈⇔P)
+    (∈⇔P ∘′ Data.Sum.map₂ (to ∈-filter ∘′ (λ h → (flip disj (∈-map⁺'' h)) , h)) ∘ ∈⇔P)
 
   insert : Map A B → A → B → Map A B
   insert m a b = ❴ a , b ❵ᵐ ∪ᵐˡ m
@@ -183,15 +184,14 @@ InjectiveOn X f = ∀ {x y} → x ∈ X → y ∈ X → f x ≡ f y → x ≡ y
 weaken-Injective : ∀ {X : Set A} {f : A → B} → Injective _≡_ _≡_ f → InjectiveOn X f
 weaken-Injective p _ _ = p
 
-mapˡ-uniq : {f : A → A'}
-  → {@(tactic by-eq) inj : InjectiveOn (dom R) f}
+mapˡ-uniq : {f : A → A'} → InjectiveOn (dom R) f
   → left-unique R
   → left-unique (mapˡ f R)
-mapˡ-uniq {inj = inj} uniq = λ h h' → case ∈⇔P h ,′ ∈⇔P h' of λ where
+mapˡ-uniq inj uniq = λ h h' → case ∈⇔P h ,′ ∈⇔P h' of λ where
   (((_ , b) , refl , Ha) , ((_ , b') , eqb , Hb)) → uniq Ha
     $ subst _ ( sym
               $ ×-≡,≡→≡
-              $ map₁ (inj (from dom∈ (b , Ha)) (from dom∈ (b' , Hb)))
+              $ Data.Product.map₁ (inj (from dom∈ (b , Ha)) (from dom∈ (b' , Hb)))
                                   (×-≡,≡←≡ eqb))
               Hb
 
@@ -199,10 +199,8 @@ mapʳ-uniq : {f : B → B'} → left-unique R → left-unique (mapʳ f R)
 mapʳ-uniq uniq = λ h h' → case ∈⇔P h ,′ ∈⇔P h' of λ where
   ((_ , refl , Ha) , (_ , refl , Hb)) → cong _ $ uniq Ha Hb
 
-mapKeys : (f : A → A') → (m : Map A B)
-  → {@(tactic by-eq) _ : InjectiveOn (dom (m ˢ)) f}
-  → Map A' B
-mapKeys f (R , uniq) {inj} = mapˡ f R , mapˡ-uniq {inj = inj} uniq
+mapKeys : (f : A → A') → (m : Map A B) → InjectiveOn (dom (m ˢ)) f → Map A' B
+mapKeys f (R , uniq) inj = mapˡ f R , mapˡ-uniq inj uniq
 
 mapValues : (B → B') → Map A B → Map A B'
 mapValues f (R , uniq) = mapʳ f R , mapʳ-uniq uniq

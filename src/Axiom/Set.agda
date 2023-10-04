@@ -7,15 +7,20 @@ module Axiom.Set where
 open import Prelude hiding (filter)
 
 import Function.Related.Propositional as R
-open import Data.List.Ext.Properties using (∈-dedup; _×-cong_)
+open import Data.List.Ext.Properties
+open import Data.List.Membership.Propositional using () renaming (_∈_ to _∈ˡ_)
 open import Data.List.Relation.Unary.Any using (here; there)
-open import Data.List.Relation.Unary.Unique.DecPropositional.Properties using (deduplicate-!)
-open import Data.List.Relation.Unary.Unique.Propositional using (Unique; [])
+open import Data.List.Relation.Unary.Unique.DecPropositional.Properties
+open import Data.List.Relation.Unary.Unique.Propositional
+open import Data.Maybe.Properties.Ext
 open import Data.Product.Algebra using (×-comm)
-open import Data.Product.Properties using (∃∃↔∃∃)
-open import Data.Product.Properties.Ext using (∃-cong′; ∃-≡)
-open import Interface.DecEq using (DecEq; _≟_)
+open import Data.Product.Properties
+open import Data.Product.Properties.Ext
+open import Interface.DecEq
 open import Relation.Binary using () renaming (Decidable to Dec₂)
+open import Relation.Nullary
+open import Relation.Nullary.Decidable using (⌊_⌋)
+open import Relation.Unary using (Pred) renaming (Decidable to Decidable¹)
 
 private variable
   ℓ : Level
@@ -106,8 +111,8 @@ record Theory {ℓ} : Type (sucˡ ℓ) where
   strongly-finite : Set A → Type ℓ
   strongly-finite X = ∃[ l ] Unique l × ∀ {a} → a ∈ X ⇔ a ∈ˡ l
 
-  DecEq∧finite⇒strongly-finite : ⦃ _ : DecEq A ⦄ (X : Set A)
-    → finite X → strongly-finite X
+  DecEq∧finite⇒strongly-finite : ⦃ _ : DecEq A ⦄ (X : Set A) →
+    finite X → strongly-finite X
   DecEq∧finite⇒strongly-finite ⦃ eq? ⦄ X (l , h) = let _≟_ = eq? ._≟_ in
     deduplicate _≟_ l , deduplicate-! _≟_ l , λ {a} →
       a ∈ X                  ∼⟨ h ⟩
@@ -201,8 +206,8 @@ record Theory {ℓ} : Type (sucˡ ℓ) where
   concatMapˢ : (A → Set B) → Set A → Set B
   concatMapˢ f a = proj₁ $ unions (map f a)
 
-  ∈-concatMapˢ : {y : B} {f : A → Set B}
-    → (∃[ x ] x ∈ X × y ∈ f x) ⇔ y ∈ concatMapˢ f X
+  ∈-concatMapˢ : {y : B} {f : A → Set B} →
+    (∃[ x ] x ∈ X × y ∈ f x) ⇔ y ∈ concatMapˢ f X
   ∈-concatMapˢ {X = X} {y} {f} =
     (∃[ x ] x ∈ X × y ∈ f x)
       ∼⟨ ∃-cong′ (λ {x} → ∃-≡ (λ T → x ∈ X × y ∈ T)) ⟩
@@ -222,8 +227,8 @@ record Theory {ℓ} : Type (sucˡ ℓ) where
   mapPartial : (A → Maybe B) → Set A → Set B
   mapPartial f = concatMapˢ (partialToSet f)
 
-  ∈-mapPartial : {y : B} {f : A → Maybe B}
-    → (∃[ x ] x ∈ X × f x ≡ just y) ⇔ y ∈ mapPartial f X
+  ∈-mapPartial : {y : B} {f : A → Maybe B} →
+    (∃[ x ] x ∈ X × f x ≡ just y) ⇔ y ∈ mapPartial f X
   ∈-mapPartial {X = X} {y} {f} =
     (∃[ x ] x ∈ X × f x ≡ just y)
       ∼⟨ ∃-cong′ (R.K-refl ×-cong (∈-partialToSet {f = f})) ⟩
@@ -305,14 +310,14 @@ record Theoryᵈ : Type₁ where
 
   field
     ∈-sp : ⦃ DecEq A ⦄ → spec-∈ A
-    _∈?_ : ⦃ DecEq A ⦄ → Decidable² (_∈_ {A = A})
+    _∈?_ : ⦃ DecEq A ⦄ → Dec₂ (_∈_ {A = A})
     all? : ⦃ DecEq A ⦄ → {P : A → Type} (P? : Decidable¹ P) {X : Set A} → Dec (All P X)
     any? : ⦃ DecEq A ⦄ → {P : A → Type} (P? : Decidable¹ P) (X : Set A) → Dec (Any P X)
 
-  module _ {A : Type} ⦃ _ : DecEq A ⦄ where
+  _∈ᵇ_ : ⦃ DecEq A ⦄ → A → Set A → Bool
+  a ∈ᵇ X = ⌊ a ∈? X ⌋
 
-    _∈ᵇ_ : A → Set A → Bool
-    a ∈ᵇ X = ⌊ a ∈? X ⌋
+  module _ {A : Type} ⦃ _ : DecEq A ⦄ where
 
     instance
       Dec-∈ : {x : A} {X : Set A} → Dec (x ∈ X)
@@ -347,10 +352,9 @@ record Theoryᵈ : Type₁ where
       incl-set-proj₁⊇ {x} x∈X with x ∈? X in eq
       ... | no ¬p = contradiction x∈X ¬p
       ... | yes p = to ∈-map
-        ( (x , p)
+        $ (x , p)
         , refl
         , to (∈-mapPartial {f = incl-set' X}) (x , x∈X , helper eq)
-        )
         where helper : x ∈? X ≡ yes p → incl-set' X x ≡ just (x , p)
               helper h with x ∈? X | h
               ... | _ | refl = refl

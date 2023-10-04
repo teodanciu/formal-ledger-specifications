@@ -3,10 +3,10 @@
 open import Ledger.Prelude
 open import Ledger.Transaction
 
-module Ledger.Ratify.Properties (txs : _) (open TransactionStructure txs) where
+module Ledger.Ratify.Properties (⋯ : _) (open TransactionStructure ⋯) where
 
 open import Ledger.Gov govStructure
-open import Ledger.Ratify txs
+open import Ledger.Ratify ⋯
 
 caseEq_of_ : ∀ {a b} {A : Set a} {B : Set b} → (a : A) → ((a' : A) → a ≡ a' → B) → B
 caseEq a of f = f a refl
@@ -26,13 +26,13 @@ module _ (accepted? : ∀ Γ es st → Dec (accepted Γ es st))
     in
     case accepted? Γ es st of λ where
       (no ¬p) → case expired? currentEpoch st of λ where
-        (no ¬q) → -, RATIFY-Continue (inj₁ (¬p , ¬q))
+        (no ¬p₁) → -, RATIFY-Continue (inj₁ (¬p , ¬p₁))
         (yes p)  → -, RATIFY-Reject ¬p p
       (yes p) → case delayed? action prevAction es d of λ where
-        (no ¬q) → caseEq (compute ⟦ sig .proj₁ , treasury , currentEpoch ⟧ᵉ es action) of λ where
-          (just x) eq → -, RATIFY-Accept p ¬q (≡-just⇔STS .Equivalence.to eq)
-          nothing  eq → -, RATIFY-Continue (inj₂ (inj₂ (p , ¬q , nothing⇒∀¬STS eq)))
-        (yes q) → -, RATIFY-Continue (inj₂ (inj₁ q))
+        (no ¬p₁) → caseEq (compute ⟦ sig .proj₁ , treasury ⟧ᵉ es action) of λ where
+          (just x) eq → -, RATIFY-Accept p ¬p₁ (≡-just⇔STS .Equivalence.to eq)
+          nothing  eq → -, RATIFY-Continue (inj₂ (inj₂ (p , ¬p₁ , nothing⇒∀¬STS eq)))
+        (yes p₁) → -, RATIFY-Continue (inj₂ (inj₁ p₁))
 
   RATIFY-total : ∀ {Γ s sig} → ∃[ s' ] Γ ⊢ s ⇀⦇ sig ,RATIFY⦈ s'
-  RATIFY-total = SS⇒BS-total RATIFY'-total
+  RATIFY-total = SS-total⇒BS-total RATIFY'-total

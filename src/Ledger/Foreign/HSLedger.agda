@@ -1,15 +1,20 @@
+{-# OPTIONS --overlapping-instances #-}
+
 module Ledger.Foreign.HSLedger where
 
 open import Ledger.Prelude; open Computational
 
-open import Data.Rational using (½)
+import Data.Maybe    as M
+import Data.Rational as ℚ
 
 open import Algebra             using (CommutativeMonoid)
 open import Algebra.Morphism    using (module MonoidMorphisms)
+open import Data.Nat            using (_≤_)
 open import Data.Nat.Properties using (+-0-commutativeMonoid)
 open import Relation.Binary.Morphism.Structures
 
 open import Foreign.Convertible
+open import Foreign.Haskell.Coerce
 
 import Ledger.Foreign.LedgerTypes as F
 
@@ -18,8 +23,6 @@ open import Ledger.Epoch
 open import Ledger.GovStructure
 open import Ledger.Script
 open import Ledger.Transaction
-
-open import Interface.HasOrder.Instance
 
 module _ {A : Set} ⦃ _ : DecEq A ⦄ where instance
   ∀Hashable : Hashable A A
@@ -163,8 +166,6 @@ open TransactionStructure           HSTransactionStructure
   hiding (PParams)
 
 instance
-  _ = Convertible-Refl
-
   -- Since the foreign address is just a number, we do bad stuff here
   Convertible-Addr : Convertible Addr F.Addr
   Convertible-Addr = λ where
@@ -177,20 +178,20 @@ instance
   Convertible-TxBody : Convertible TxBody F.TxBody
   Convertible-TxBody = λ where
     .to txb → let open TxBody txb in record
-      { txins  = to txins
+      { txins  = to ⦃ Convertible-FinSet ⦃ Coercible⇒Convertible ⦄ ⦄ txins
       ; txouts = to txouts
       ; txfee  = txfee
-      ; txvldt = to txvldt
+      ; txvldt = coerce txvldt
       ; txsize = txsize
       ; txid   = txid
       }
     .from txb → let open F.TxBody txb in record
-      { txins      = from txins
+      { txins      = from ⦃ Convertible-FinSet ⦃ Coercible⇒Convertible ⦄ ⦄ txins
       ; txouts     = from txouts
       ; txcerts    = []
       ; mint       = ε -- since simpleTokenAlgebra only contains ada mint will always be empty
       ; txfee      = txfee
-      ; txvldt     = from txvldt
+      ; txvldt     = coerce txvldt
       ; txwdrls    = ∅ᵐ
       ; txup       = nothing
       ; txADhash   = nothing
@@ -226,23 +227,23 @@ instance
   Convertible-PParams : Convertible PParams F.PParams
   Convertible-PParams = λ where
     .to pp → let open PParams pp in record
-      { a                 = a
-      ; b                 = b
-      ; maxBlockSize      = maxBlockSize
-      ; maxTxSize         = maxTxSize
-      ; maxHeaderSize     = maxHeaderSize
-      ; maxValSize        = maxValSize
-      ; minUTxOValue      = minUTxOValue
-      ; poolDeposit       = poolDeposit
-      ; Emax              = Emax
-      ; pv                = to pv
-      ; votingThresholds  = _
-      ; govActionLifetime = govActionLifetime
-      ; govActionDeposit  = govActionDeposit
-      ; drepDeposit       = drepDeposit
-      ; drepActivity      = drepActivity
-      ; ccMinSize         = ccMinSize
-      ; ccMaxTermLength   = ccMaxTermLength
+      { a                = a
+      ; b                = b
+      ; maxBlockSize     = maxBlockSize
+      ; maxTxSize        = maxTxSize
+      ; maxHeaderSize    = maxHeaderSize
+      ; maxValSize       = maxValSize
+      ; minUTxOValue     = minUTxOValue
+      ; poolDeposit      = poolDeposit
+      ; Emax             = Emax
+      ; pv               = coerce pv
+      ; votingThresholds = _
+      ; minCCSize        = minCCSize
+      ; ccTermLimit      = ccTermLimit
+      ; govExpiration    = govExpiration
+      ; govDeposit       = govDeposit
+      ; drepDeposit      = drepDeposit
+      ; drepActivity     = drepActivity
       }
     .from pp → let open F.PParams pp in record
       { a                 = a
@@ -255,19 +256,19 @@ instance
       ; poolDeposit       = poolDeposit
       ; Emax              = Emax
       ; collateralPercent = 0
-      ; pv                = from pv
+      ; pv                = coerce pv
         -- TODO: translate these once they are implemented in F.PParams
       ; drepThresholds    = record
-        { P1  = ½ ; P2a = ½ ; P2b = ½ ; P3  = ½ ; P4 = ½
-        ; P5a = ½ ; P5b = ½ ; P5c = ½ ; P5d = ½ ; P6 = ½}
+        { P1  = ℚ.½ ; P2a = ℚ.½ ; P2b = ℚ.½ ; P3  = ℚ.½ ; P4 = ℚ.½
+        ; P5a = ℚ.½ ; P5b = ℚ.½ ; P5c = ℚ.½ ; P5d = ℚ.½ ; P6 = ℚ.½}
       ; poolThresholds    = record
-        { Q1 = ½ ; Q2a = ½ ; Q2b = ½ ; Q4 = ½ }
-      ; govActionLifetime = govActionLifetime
-      ; govActionDeposit  = govActionDeposit
+        { Q1 = ℚ.½ ; Q2a = ℚ.½ ; Q2b = ℚ.½ ; Q4 = ℚ.½ }
+      ; minCCSize         = minCCSize
+      ; ccTermLimit       = ccTermLimit
+      ; govExpiration     = govExpiration
+      ; govDeposit        = govDeposit
       ; drepDeposit       = drepDeposit
       ; drepActivity      = drepActivity
-      ; ccMinSize         = ccMinSize
-      ; ccMaxTermLength   = ccMaxTermLength
       ; minimumAVS        = 0
       }
 
@@ -281,20 +282,22 @@ instance
   Convertible-UTxOState : Convertible UTxOState F.UTxOState
   Convertible-UTxOState = λ where
     .to record { utxo = utxo ; fees = fees } →
-        record { utxo = to utxo ; fees = fees }
-    .from s → let open F.UTxOState s in record
-      { utxo      = from utxo
-      ; fees      = fees
+        record { utxo = to ⦃ conv-utxo ⦄ utxo ; fees = fees }
+    .from s → record
+      { utxo      = from ⦃ conv-utxo ⦄ $ F.UTxOState.utxo s
+      ; fees      = F.UTxOState.fees s
       ; deposits  = ∅ᵐ
       ; donations = ε
       }
+   where conv-utxo : Convertible UTxO F.UTxO
+         conv-utxo = Convertible-Map ⦃ DecEq-Product ⦄ ⦃ Coercible⇒Convertible ⦄
 
 utxo-step : F.UTxOEnv → F.UTxOState → F.TxBody → Maybe F.UTxOState
-utxo-step e s txb = to <$> UTXO-step (from e) (from s) (from txb)
+utxo-step e s txb = M.map to (UTXO-step (from e) (from s) (from txb))
 
 {-# COMPILE GHC utxo-step as utxoStep #-}
 
 utxow-step : F.UTxOEnv → F.UTxOState → F.Tx → Maybe F.UTxOState
-utxow-step e s tx = to <$> compute Computational-UTXOW (from e) (from s) (from tx)
+utxow-step e s tx = M.map to (compute Computational-UTXOW (from e) (from s) (from tx))
 
 {-# COMPILE GHC utxow-step as utxowStep #-}

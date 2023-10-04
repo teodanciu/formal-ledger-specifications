@@ -10,12 +10,12 @@ open import Data.Nat.Properties using (+-0-monoid; +-0-commutativeMonoid)
 open import Ledger.Prelude; open Equivalence
 open import Ledger.Transaction
 
-module Ledger.Chain (txs : _) (open TransactionStructure txs) where
+module Ledger.Chain (⋯ : _) (open TransactionStructure ⋯) where
 
 open import Ledger.Gov govStructure
-open import Ledger.Ledger txs
-open import Ledger.Ratify txs
-open import Ledger.Utxo txs
+open import Ledger.Ledger ⋯
+open import Ledger.Ratify ⋯
+open import Ledger.Utxo ⋯
 \end{code}
 \begin{figure*}[h]
 \begin{code}
@@ -55,37 +55,35 @@ private variable
 
 instance _ = +-0-monoid; _ = +-0-commutativeMonoid
 
--- The NEWEPOCH rule is actually multiple rules in one for the sake of simplicity:t also does what EPOCH used to do in previous eras
+-- The NEWEPOCH rule is actually multiple rules in one for the sake of simplicity:
+-- it also does what EPOCH used to do in previous eras
 data _⊢_⇀⦇_,NEWEPOCH⦈_ : NewEpochEnv → NewEpochState → Epoch → NewEpochState → Set where
 \end{code}
 \begin{figure*}[h]
 \begin{code}
   NEWEPOCH-New : ∀ {Γ} → let
       open NewEpochState nes hiding (es)
-      open RatifyState fut using (removed) renaming (es to esW)
+      open RatifyState fut using (removed) renaming (es to esW); open EnactState esW
       -- ^ this rolls over the future enact state into es
       open LState ls; open UTxOState utxoSt
-      open CertState certState
-      open PState pState; open DState dState; open GState gState
+      open CertState certState; open PState pState; open DState dState; open GState gState
       open Acnt acnt
 
-      trWithdrawals   = esW .EnactState.withdrawals
-      totWithdrawals  = Σᵐᵛ[ x ← trWithdrawals ᶠᵐ ] x
-
       removedGovActions = flip concatMapˢ removed λ (gaid , gaSt) →
-        mapˢ (GovActionState.returnAddr gaSt ,_)
-             ((deposits ∣ ❴ GovActionDeposit gaid ❵) ˢ)
+        map (GovActionState.returnAddr gaSt ,_)
+            ((deposits ∣ ❴ GovActionDeposit gaid ❵) ˢ)
       govActionReturns = aggregate₊ $
-        mapˢ (λ (a , _ , d) → a , d) removedGovActions , finiteness _
+        map (λ (a , _ , d) → a , d) removedGovActions , finiteness _
 
       es        = record esW { withdrawals = ∅ᵐ }
       retired   = retiring ⁻¹ e
-      refunds   = govActionReturns ∪⁺ trWithdrawals ∣ dom (rewards ˢ)
-      unclaimed = govActionReturns ∪⁺ trWithdrawals ∣ dom (rewards ˢ) ᶜ
+      rewards   = rewards ∪⁺ withdrawals
+      refunds   = govActionReturns ∣ dom (rewards ˢ)
+      unclaimed = govActionReturns ∣ dom (rewards ˢ) ᶜ
 
-      govSt' = filter (¬? ∘ (_∈? mapˢ proj₁ removed) ∘ proj₁) govSt
+      govSt' = filter (¬? ∘ (_∈? map proj₁ removed) ∘ proj₁) govSt
 
-      gState' = record gState { ccHotKeys = ccHotKeys ∣ ccCreds (es .EnactState.cc) }
+      gState' = record gState { ccHotKeys = ccHotKeys ∣ ccCreds cc }
 
       certState' = record certState {
         pState = record pState
@@ -97,13 +95,14 @@ data _⊢_⇀⦇_,NEWEPOCH⦈_ : NewEpochEnv → NewEpochState → Epoch → New
         }
       utxoSt' = record utxoSt
         { fees = 0
-        ; deposits = deposits ∣ mapˢ (proj₁ ∘ proj₂) removedGovActions ᶜ
+        ; deposits = deposits ∣ map (proj₁ ∘ proj₂) removedGovActions ᶜ
         ; donations = 0
         }
       ls' = record ls
         { govSt = govSt' ; utxoSt = utxoSt' ; certState = certState' }
       acnt' = record acnt
-        { treasury = treasury + fees + getCoin unclaimed + donations ∸ totWithdrawals }
+        { treasury = treasury + fees + getCoin unclaimed + donations
+                   ∸ Σᵐᵛ[ x ← withdrawals ᶠᵐ ] x }
     in
     e ≡ sucᵉ lastEpoch
     → record { currentEpoch = e ; treasury = treasury ; GState gState ; NewEpochEnv Γ }
@@ -134,10 +133,10 @@ maybePurpose-prop {prps = prps} {x} {y} _ xy∈dom with to dom∈ xy∈dom
 ... | yes refl | _ = refl
 
 filterPurpose : DepositPurpose → (DepositPurpose × Credential) ⇀ Coin → Credential ⇀ Coin
-filterPurpose prps m = mapKeys proj₂ (mapMaybeWithKeyᵐ (maybePurpose prps) m)
-  {λ where x∈dom y∈dom refl → cong (_, _)
-                            $ trans (maybePurpose-prop {prps = prps} m x∈dom)
-                            $ sym   (maybePurpose-prop {prps = prps} m y∈dom)}
+filterPurpose prps m = mapKeys proj₂ (mapMaybeWithKeyᵐ (maybePurpose prps) m) λ where
+  x∈dom y∈dom refl → cong (_, _) $
+    trans (maybePurpose-prop {prps = prps} m x∈dom)
+    (sym $ maybePurpose-prop {prps = prps} m y∈dom)
 
 govActionDeposits : LState → VDeleg ⇀ Coin
 govActionDeposits ls =
@@ -149,7 +148,7 @@ govActionDeposits ls =
         vd ← lookupᵐ? voteDelegs c ⦃ _ ∈? _ ⦄
         dep ← lookupᵐ? deposits (GovActionDeposit gaid) ⦃ _ ∈? _ ⦄
         just ❴ vd , dep ❵ᵐ )
-      (fromList govSt)
+      (setFromList govSt)
 
 calculateStakeDistrs : LState → StakeDistrs
 calculateStakeDistrs ls =

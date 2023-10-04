@@ -23,10 +23,10 @@ open Tactic.EquationalReasoning.≡-Reasoning {A = ℕ} (solve-macro (quoteTerm 
 open import Ledger.Prelude; open Properties; open Computational
 open import Ledger.Transaction
 
-module Ledger.Utxo.Properties (txs : _) (open TransactionStructure txs) where
+module Ledger.Utxo.Properties (⋯ : _) (open TransactionStructure ⋯) where
 
 open TxBody
-open import Ledger.Utxo txs renaming (Computational-UTXO to Computational-UTXO')
+open import Ledger.Utxo ⋯ renaming (Computational-UTXO to Computational-UTXO')
 
 instance
   _ = TokenAlgebra.Value-CommutativeMonoid tokenAlgebra
@@ -72,7 +72,7 @@ balance-∪ {utxo} {utxo'} h = begin
   cbalance utxo + cbalance utxo'
     ∎
 
-newTxid⇒disj : txid tx ∉ mapˢ proj₁ (dom (utxo ˢ))
+newTxid⇒disj : txid tx ∉ map proj₁ (dom (utxo ˢ))
              → disjoint' (dom (utxo ˢ)) (dom ((outs tx) ˢ))
 newTxid⇒disj id∉utxo = disjoint⇒disjoint' λ h h' → id∉utxo $ to ∈-map
   (-, (case from ∈-map h' of λ where
@@ -158,7 +158,7 @@ module DepositHelpers
   {Γ : UTxOEnv}
   (step : Γ ⊢ ⟦ utxo , fees , deposits , donations ⟧ᵘ ⇀⦇ tx ,UTXO⦈
               ⟦ utxo' , fees' , deposits' , donations' ⟧ᵘ)
-  (h' : txid tx ∉ mapˢ proj₁ (dom (utxo ˢ)))
+  (h' : txid tx ∉ map proj₁ (dom (utxo ˢ)))
   where
 
   private
@@ -221,7 +221,7 @@ module DepositHelpers
   ... | ℤ.+_ n     = ⊥-elim (ref≢0 refl)
   ... | ℤ.negsuc n = refl
 
-  ref≤dep : ref ≤ dep
+  ref≤dep : ref ℕ.≤ dep
   ref≤dep with ref ≟ 0
   ... | no ¬p = ≤″⇒≤ $ less-than-or-equal $ begin
     ref + uDep ≡⟨ +-comm ref uDep ⟩
@@ -328,7 +328,7 @@ if
 pov :
 \end{code}
 \begin{code}
-  txid tx ∉ mapˢ proj₁ (dom (utxo ˢ))
+  txid tx ∉ map proj₁ (dom (utxo ˢ))
 \end{code}
 
 and

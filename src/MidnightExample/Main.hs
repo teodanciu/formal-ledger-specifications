@@ -1,6 +1,7 @@
-module Main where
+module Main (module Main, module MAlonzo.Code.MidnightExample.HSLedger) where
 
-import Lib
+import MAlonzo.Code.MidnightExample.HSLedger
+import MAlonzo.Code.MidnightExample.Types
 
 runSteps :: (s -> sig -> Maybe s) -> s -> [sig] -> Maybe s
 runSteps f s []       = Just s

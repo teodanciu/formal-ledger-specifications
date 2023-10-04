@@ -1,56 +1,44 @@
+{-# OPTIONS --overlapping-instances #-}
 module Foreign.Convertible where
 
-open import Ledger.Prelude
+open import Data.List using (map)
+open import Ledger.Prelude hiding (map)
+
+open import Foreign.Haskell
+open import Foreign.Haskell.Coerce
 
 record Convertible (A B : Set) : Set where
   field to   : A → B
         from : B → A
+
 open Convertible ⦃...⦄ public
 
-Convertible-Refl : ∀ {A} → Convertible A A
-Convertible-Refl = λ where .to → id; .from → id
+private variable A B A' B' K K' V V' : Set
 
-Convertible₁ : (Set → Set) → (Set → Set) → Set₁
-Convertible₁ T U = ∀ {A B} → ⦃ Convertible A B ⦄ → Convertible (T A) (U B)
-
-Convertible₂ : (Set → Set → Set) → (Set → Set → Set) → Set₁
-Convertible₂ T U = ∀ {A B} → ⦃ Convertible A B ⦄ → Convertible₁ (T A) (U B)
-
--- ** instances
-
-Bifunctor⇒Convertible : ∀ {F} → ⦃ Bifunctor F ⦄ → Convertible₂ F F
-Bifunctor⇒Convertible ⦃ _ ⦄ ⦃ ca ⦄ ⦃ cb ⦄ = λ where
-  .to   → bimap to to
-  .from → bimap from from
-
-open import Foreign.Haskell
-open import Foreign.Haskell.Coerce using (coerce)
+Convertible-Refl : Convertible A A
+Convertible-Refl = λ where
+  .to   → id
+  .from → id
 
 instance
-  Convertible-× : Convertible₂ _×_ _×_
-  Convertible-× = Bifunctor⇒Convertible
+  Coercible⇒Convertible : ⦃ Coercible A B ⦄ → Convertible A B
+  Coercible⇒Convertible = λ where
+    .to   → coerce
+    .from → coerce ⦃ TrustMe ⦄ -- coercibility is symmetric, I promise
 
-  Convertible-Pair : Convertible₂ _×_ Pair
+  Convertible-Pair : ⦃ Convertible A A' ⦄ → ⦃ Convertible B B' ⦄
+                   → Convertible (A × B) (Pair A' B')
   Convertible-Pair = λ where
-    .to   → coerce ∘ bimap to to
-    .from → bimap from from ∘ coerce
+    .to   (a , b) → to a   , to b
+    .from (a , b) → from a , from b
 
-  Convertible-⊎ : Convertible₂ _⊎_ _⊎_
-  Convertible-⊎ = Bifunctor⇒Convertible
-
-  Convertible-Either : Convertible₂ _⊎_ Either
-  Convertible-Either = λ where
-    .to   → coerce ∘ bimap to to
-    .from → bimap from from ∘ coerce
-
-  Convertible-FinSet : Convertible₁ ℙ_ List
+  Convertible-FinSet : ⦃ Convertible A A' ⦄ → Convertible (ℙ A) (List A')
   Convertible-FinSet = λ where
-    .to   → map to   ∘ setToList
-    .from → fromList ∘ map from
+    .to   s → map to (setToList s)
+    .from l → setFromList (map from l)
 
-  Convertible-Map : ∀ {K K' V V'} → ⦃ DecEq K ⦄
-    → ⦃ Convertible K K' ⦄ → ⦃ Convertible V V' ⦄
-    → Convertible (K ⇀ V) (List $ Pair K' V')
+  Convertible-Map : ⦃ DecEq K ⦄ → ⦃ Convertible K K' ⦄ → ⦃ Convertible V V' ⦄
+                  → Convertible (K ⇀ V) (List $ Pair K' V')
   Convertible-Map = λ where
-    .to   → to        ∘ proj₁
-    .from → fromListᵐ ∘ map from
+    .to   m → to (proj₁ m)
+    .from m → fromListᵐ (map from m)

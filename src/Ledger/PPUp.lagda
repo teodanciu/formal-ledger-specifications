@@ -15,7 +15,7 @@ open import Data.Product.Properties
 open import Ledger.Prelude hiding (_*_)
 open import Ledger.Transaction
 
-module Ledger.PPUp (txs : _) (open TransactionStructure txs) where
+module Ledger.PPUp (⋯ : _) (open TransactionStructure ⋯) where
 
 open Semiring Slotʳ using (_*_)
 open Semiring-Lit Slotʳ
@@ -101,7 +101,7 @@ data _⊢_⇀⦇_,PPUP⦈_ : PPUpdateEnv → PPUpdateState → Maybe Update → 
   PPUpdateFuture : let open PPUpdateEnv Γ in
     dom (pup ˢ) ⊆ dom (genDelegs ˢ)
     → All (isViableUpdate pparams) (range (pup ˢ))
-    → firstSlot (sucᵉ (epoch slot)) ≤ (slot + (2 * StabilityWindow))
+    → firstSlot (sucᵉ (epoch slot)) ≤ˢ (slot + (2 * StabilityWindow))
     → sucᵉ (epoch slot) ≡ e
     ────────────────────────────────
     Γ ⊢ record { pup = pupˢ ; fpup = fpupˢ } ⇀⦇ just (pup , e) ,PPUP⦈

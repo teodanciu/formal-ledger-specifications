@@ -1,7 +1,7 @@
 {-# OPTIONS --safe --no-import-sorts #-}
 
 open import Agda.Primitive renaming (Set to Type)
-open import Axiom.Set using (Theory)
+open import Axiom.Set
 
 module Axiom.Set.Properties {ℓ} (th : Theory {ℓ}) where
 
@@ -12,26 +12,26 @@ import Data.List
 import Data.Sum
 import Function.Related.Propositional as R
 import Relation.Nullary.Decidable
-open import Data.List.Ext.Properties using (_×-cong_; _⊎-cong_)
+open import Data.List.Ext.Properties
 open import Data.List.Membership.DecPropositional using () renaming (_∈?_ to _∈ˡ?_)
 open import Data.List.Membership.Propositional using () renaming (_∈_ to _∈ˡ_)
-open import Data.List.Membership.Propositional.Properties using (∈-filter⁺; ∈-filter⁻; ∈-++⁺ˡ; ∈-++⁺ʳ; ∈-++⁻)
-open import Data.List.Relation.Binary.BagAndSetEquality using (∼bag⇒↭)
-open import Data.List.Relation.Binary.Permutation.Propositional.Properties using (↭-length)
-open import Data.List.Relation.Unary.Unique.Propositional.Properties.WithK using (unique∧set⇒bag)
+open import Data.List.Membership.Propositional.Properties hiding (finite)
+open import Data.List.Relation.Binary.BagAndSetEquality
+open import Data.List.Relation.Binary.Permutation.Propositional.Properties
+open import Data.List.Relation.Unary.Unique.Propositional.Properties.WithK
 open import Data.Product using (map₂)
 open import Function.Related using (toRelated; fromRelated)
-open import Interface.DecEq using (DecEq; _≟_)
+open import Interface.DecEq
 open import Relation.Binary
 open import Relation.Binary.Lattice
-open import Relation.Binary.Morphism using (IsOrderHomomorphism)
+open import Relation.Binary.Morphism
 open import Relation.Unary using () renaming (Decidable to Decidable¹)
 
 open Equivalence
 
 private variable
-  A B C : Type ℓ
-  X Y Z : Set A
+  A B C D : Type ℓ
+  X X' Y Y' Z : Set A
 
 module _ {f : A → B} {X} {b} where
   ∈-map⁻' : b ∈ map f X → (∃[ a ] b ≡ f a × a ∈ X)
@@ -135,10 +135,9 @@ cong-⊆⇒cong₂ h X≡ᵉX' Y≡ᵉY' = h (proj₁ X≡ᵉX') (proj₁ Y≡�
 
 module _ {f : A → B} {g : B → C} where
   map-⊆∘ : map g (map f X) ⊆ map (g ∘ f) X
-  map-⊆∘ a∘∈
-    with b , a≡gb , b∈prfX ← from ∈-map a∘∈
-    with a , refl , a∈X    ← from ∈-map b∈prfX
-    = to ∈-map (a , a≡gb , a∈X)
+  map-⊆∘ a∘∈ with from ∈-map a∘∈
+  ... | b , a≡gb , b∈prfX with from ∈-map b∈prfX
+  ...                     | a , refl , a∈X = to ∈-map (a , a≡gb , a∈X)
 
   map-∘⊆ : map (g ∘ f) X ⊆ map g (map f X)
   map-∘⊆ a∈∘ with from ∈-map a∈∘
