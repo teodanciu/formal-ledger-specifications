@@ -1,0 +1,145 @@
+<!DOCTYPE HTML>
+<html><head><meta charset="utf-8"><title>Ledger.PParams</title><link rel="stylesheet" href="Agda.css"></head><body><pre class="Agda"><a id="1" class="Background">\section{Protocol parameters}
+\label{sec:protocol-parameters}
+This section defines the adjustable protocol parameters of the Cardano ledger.
+These parameters are used in block validation and can affect various features of the system,
+such as minimum fees, maximum and minimum sizes of certain components, and more.
+</a><a id="316" class="Markup">\begin{code}[hide]</a>
+<a id="335" class="Symbol">{-#</a> <a id="339" class="Keyword">OPTIONS</a> <a id="347" class="Pragma">--safe</a> <a id="354" class="Symbol">#-}</a>
+
+<a id="359" class="Keyword">open</a> <a id="364" class="Keyword">import</a> <a id="371" href="Data.Rational.html" class="Module">Data.Rational</a> <a id="385" class="Keyword">using</a> <a id="391" class="Symbol">(</a><a id="392" href="Data.Rational.Base.html#1287" class="Record">ℚ</a><a id="393" class="Symbol">)</a>
+<a id="395" class="Keyword">open</a> <a id="400" class="Keyword">import</a> <a id="407" href="Relation.Nullary.Decidable.html" class="Module">Relation.Nullary.Decidable</a>
+<a id="434" class="Keyword">open</a> <a id="439" class="Keyword">import</a> <a id="446" href="Tactic.Derive.DecEq.html" class="Module">Tactic.Derive.DecEq</a>
+
+<a id="467" class="Keyword">open</a> <a id="472" class="Keyword">import</a> <a id="479" href="Ledger.Prelude.html" class="Module">Ledger.Prelude</a>
+<a id="494" class="Keyword">open</a> <a id="499" class="Keyword">import</a> <a id="506" href="Ledger.Epoch.html" class="Module">Ledger.Epoch</a>
+<a id="519" class="Keyword">open</a> <a id="524" class="Keyword">import</a> <a id="531" href="Ledger.Crypto.html" class="Module">Ledger.Crypto</a>
+
+<a id="546" class="Keyword">module</a> <a id="553" href="Ledger.PParams.html" class="Module">Ledger.PParams</a> <a id="568" class="Symbol">(</a><a id="569" href="Ledger.PParams.html#569" class="Bound">es</a> <a id="572" class="Symbol">:</a> <a id="574" class="Symbol">_)</a> <a id="577" class="Symbol">(</a><a id="578" class="Keyword">open</a> <a id="583" href="Ledger.Epoch.html#415" class="Module">EpochStructure</a> <a id="598" href="Ledger.PParams.html#569" class="Bound">es</a><a id="600" class="Symbol">)</a> <a id="602" class="Keyword">where</a>
+<a id="608" class="Markup">\end{code}</a><a id="618" class="Background">
+\begin{figure*}[h!]
+{\small
+\begin{AgdaAlign}
+</a><a id="665" class="Markup">\begin{code}</a>
+<a id="ProtVer"></a><a id="678" href="Ledger.PParams.html#678" class="Function">ProtVer</a> <a id="686" class="Symbol">:</a> <a id="688" href="Agda.Primitive.html#320" class="Primitive">Set</a>
+<a id="692" href="Ledger.PParams.html#678" class="Function">ProtVer</a> <a id="700" class="Symbol">=</a> <a id="702" href="Agda.Builtin.Nat.html#186" class="Datatype">ℕ</a> <a id="704" href="Data.Product.Base.html#1109" class="Function Operator">×</a> <a id="706" href="Agda.Builtin.Nat.html#186" class="Datatype">ℕ</a>
+
+<a id="709" class="Keyword">record</a> <a id="Acnt"></a><a id="716" href="Ledger.PParams.html#716" class="Record">Acnt</a> <a id="721" class="Symbol">:</a> <a id="723" href="Agda.Primitive.html#320" class="Primitive">Set</a> <a id="727" class="Keyword">where</a>
+  <a id="735" class="Keyword">field</a> <a id="Acnt.treasury"></a><a id="741" href="Ledger.PParams.html#741" class="Field">treasury</a> <a id="Acnt.reserves"></a><a id="750" href="Ledger.PParams.html#750" class="Field">reserves</a> <a id="759" class="Symbol">:</a> <a id="761" href="Ledger.Prelude.Base.html#81" class="Function">Coin</a>
+
+<a id="767" class="Keyword">data</a> <a id="PParamGroup"></a><a id="772" href="Ledger.PParams.html#772" class="Datatype">PParamGroup</a> <a id="784" class="Symbol">:</a> <a id="786" href="Agda.Primitive.html#320" class="Primitive">Set</a> <a id="790" class="Keyword">where</a>
+  <a id="PParamGroup.NetworkGroup"></a><a id="798" href="Ledger.PParams.html#798" class="InductiveConstructor">NetworkGroup</a> <a id="PParamGroup.EconomicGroup"></a><a id="811" href="Ledger.PParams.html#811" class="InductiveConstructor">EconomicGroup</a> <a id="PParamGroup.TechnicalGroup"></a><a id="825" href="Ledger.PParams.html#825" class="InductiveConstructor">TechnicalGroup</a> <a id="PParamGroup.GovernanceGroup"></a><a id="840" href="Ledger.PParams.html#840" class="InductiveConstructor">GovernanceGroup</a> <a id="856" class="Symbol">:</a> <a id="858" href="Ledger.PParams.html#772" class="Datatype">PParamGroup</a>
+
+<a id="871" class="Keyword">record</a> <a id="DrepThresholds"></a><a id="878" href="Ledger.PParams.html#878" class="Record">DrepThresholds</a> <a id="893" class="Symbol">:</a> <a id="895" href="Agda.Primitive.html#320" class="Primitive">Set</a> <a id="899" class="Keyword">where</a>
+  <a id="907" class="Keyword">field</a> <a id="DrepThresholds.P1"></a><a id="913" href="Ledger.PParams.html#913" class="Field">P1</a> <a id="DrepThresholds.P2a"></a><a id="916" href="Ledger.PParams.html#916" class="Field">P2a</a> <a id="DrepThresholds.P2b"></a><a id="920" href="Ledger.PParams.html#920" class="Field">P2b</a> <a id="DrepThresholds.P3"></a><a id="924" href="Ledger.PParams.html#924" class="Field">P3</a> <a id="DrepThresholds.P4"></a><a id="927" href="Ledger.PParams.html#927" class="Field">P4</a> <a id="DrepThresholds.P5a"></a><a id="930" href="Ledger.PParams.html#930" class="Field">P5a</a> <a id="DrepThresholds.P5b"></a><a id="934" href="Ledger.PParams.html#934" class="Field">P5b</a> <a id="DrepThresholds.P5c"></a><a id="938" href="Ledger.PParams.html#938" class="Field">P5c</a> <a id="DrepThresholds.P5d"></a><a id="942" href="Ledger.PParams.html#942" class="Field">P5d</a> <a id="DrepThresholds.P6"></a><a id="946" href="Ledger.PParams.html#946" class="Field">P6</a> <a id="949" class="Symbol">:</a> <a id="951" href="Data.Rational.Base.html#1287" class="Record">ℚ</a>
+
+<a id="954" class="Keyword">record</a> <a id="PoolThresholds"></a><a id="961" href="Ledger.PParams.html#961" class="Record">PoolThresholds</a> <a id="976" class="Symbol">:</a> <a id="978" href="Agda.Primitive.html#320" class="Primitive">Set</a> <a id="982" class="Keyword">where</a>
+  <a id="990" class="Keyword">field</a> <a id="PoolThresholds.Q1"></a><a id="996" href="Ledger.PParams.html#996" class="Field">Q1</a> <a id="PoolThresholds.Q2a"></a><a id="999" href="Ledger.PParams.html#999" class="Field">Q2a</a> <a id="PoolThresholds.Q2b"></a><a id="1003" href="Ledger.PParams.html#1003" class="Field">Q2b</a> <a id="PoolThresholds.Q4"></a><a id="1007" href="Ledger.PParams.html#1007" class="Field">Q4</a> <a id="1010" class="Symbol">:</a> <a id="1012" href="Data.Rational.Base.html#1287" class="Record">ℚ</a>
+
+<a id="1015" class="Keyword">record</a> <a id="PParams"></a><a id="1022" href="Ledger.PParams.html#1022" class="Record">PParams</a> <a id="1030" class="Symbol">:</a> <a id="1032" href="Agda.Primitive.html#320" class="Primitive">Set</a> <a id="1036" class="Keyword">where</a>
+  <a id="1044" class="Keyword">field</a>
+<a id="1050" class="Markup">\end{code}</a><a id="1060" class="Background">
+\emph{Network group}
+\AgdaTarget{maxBlockSize, maxTxSize, maxHeaderSize, maxValSize, pv}
+</a><a id="1150" class="Markup">\begin{code}</a>
+        <a id="PParams.maxBlockSize"></a><a id="1171" href="Ledger.PParams.html#1171" class="Field">maxBlockSize</a>       <a id="1190" class="Symbol">:</a> <a id="1192" href="Agda.Builtin.Nat.html#186" class="Datatype">ℕ</a>
+        <a id="PParams.maxTxSize"></a><a id="1202" href="Ledger.PParams.html#1202" class="Field">maxTxSize</a>          <a id="1221" class="Symbol">:</a> <a id="1223" href="Agda.Builtin.Nat.html#186" class="Datatype">ℕ</a>
+        <a id="PParams.maxHeaderSize"></a><a id="1233" href="Ledger.PParams.html#1233" class="Field">maxHeaderSize</a>      <a id="1252" class="Symbol">:</a> <a id="1254" href="Agda.Builtin.Nat.html#186" class="Datatype">ℕ</a>
+        <a id="PParams.maxValSize"></a><a id="1264" href="Ledger.PParams.html#1264" class="Field">maxValSize</a>         <a id="1283" class="Symbol">:</a> <a id="1285" href="Agda.Builtin.Nat.html#186" class="Datatype">ℕ</a>
+        <a id="PParams.pv"></a><a id="1295" href="Ledger.PParams.html#1295" class="Field">pv</a>                 <a id="1314" class="Symbol">:</a> <a id="1316" href="Ledger.PParams.html#678" class="Function">ProtVer</a> <a id="1324" class="Comment">-- retired, keep for now</a>
+<a id="1349" class="Markup">\end{code}</a><a id="1359" class="Background">
+\emph{Economic group}
+\AgdaTarget{a, b, minUTxOValue, poolDeposit}
+</a><a id="1427" class="Markup">\begin{code}</a>
+        <a id="PParams.a"></a><a id="1448" href="Ledger.PParams.html#1448" class="Field">a</a>                  <a id="1467" class="Symbol">:</a> <a id="1469" href="Agda.Builtin.Nat.html#186" class="Datatype">ℕ</a>
+        <a id="PParams.b"></a><a id="1479" href="Ledger.PParams.html#1479" class="Field">b</a>                  <a id="1498" class="Symbol">:</a> <a id="1500" href="Agda.Builtin.Nat.html#186" class="Datatype">ℕ</a>
+        <a id="PParams.minUTxOValue"></a><a id="1510" href="Ledger.PParams.html#1510" class="Field">minUTxOValue</a>       <a id="1529" class="Symbol">:</a> <a id="1531" href="Ledger.Prelude.Base.html#81" class="Function">Coin</a>
+        <a id="PParams.poolDeposit"></a><a id="1544" href="Ledger.PParams.html#1544" class="Field">poolDeposit</a>        <a id="1563" class="Symbol">:</a> <a id="1565" href="Ledger.Prelude.Base.html#81" class="Function">Coin</a>
+<a id="1570" class="Markup">\end{code}</a><a id="1580" class="Background">
+\emph{Technical group}
+\AgdaTarget{Emax, collateralPercent}
+</a><a id="1641" class="Markup">\begin{code}</a>
+        <a id="PParams.Emax"></a><a id="1662" href="Ledger.PParams.html#1662" class="Field">Emax</a>               <a id="1681" class="Symbol">:</a> <a id="1683" href="Ledger.Epoch.html#502" class="Field">Epoch</a>
+        <a id="PParams.collateralPercent"></a><a id="1697" href="Ledger.PParams.html#1697" class="Field">collateralPercent</a>  <a id="1716" class="Symbol">:</a> <a id="1718" href="Agda.Builtin.Nat.html#186" class="Datatype">ℕ</a>
+<a id="1720" class="Markup">\end{code}</a><a id="1730" class="Background">
+\emph{Governance group}
+\AgdaTarget{drepThresholds, poolThresholds, ccMinSize, ccMaxTermLength, govActionLifetime, govActionDeposit, drepDeposit, drepActivity, minimumAVS}
+</a><a id="1903" class="Markup">\begin{code}</a>
+        <a id="PParams.drepThresholds"></a><a id="1924" href="Ledger.PParams.html#1924" class="Field">drepThresholds</a>     <a id="1943" class="Symbol">:</a> <a id="1945" href="Ledger.PParams.html#878" class="Record">DrepThresholds</a>
+        <a id="PParams.poolThresholds"></a><a id="1968" href="Ledger.PParams.html#1968" class="Field">poolThresholds</a>     <a id="1987" class="Symbol">:</a> <a id="1989" href="Ledger.PParams.html#961" class="Record">PoolThresholds</a>
+        <a id="PParams.govActionLifetime"></a><a id="2012" href="Ledger.PParams.html#2012" class="Field">govActionLifetime</a>  <a id="2031" class="Symbol">:</a> <a id="2033" href="Agda.Builtin.Nat.html#186" class="Datatype">ℕ</a>
+        <a id="PParams.govActionDeposit"></a><a id="2043" href="Ledger.PParams.html#2043" class="Field">govActionDeposit</a>   <a id="2062" class="Symbol">:</a> <a id="2064" href="Ledger.Prelude.Base.html#81" class="Function">Coin</a>
+        <a id="PParams.drepDeposit"></a><a id="2077" href="Ledger.PParams.html#2077" class="Field">drepDeposit</a>        <a id="2096" class="Symbol">:</a> <a id="2098" href="Ledger.Prelude.Base.html#81" class="Function">Coin</a>
+        <a id="PParams.drepActivity"></a><a id="2111" href="Ledger.PParams.html#2111" class="Field">drepActivity</a>       <a id="2130" class="Symbol">:</a> <a id="2132" href="Ledger.Epoch.html#502" class="Field">Epoch</a>
+        <a id="PParams.ccMinSize"></a><a id="2146" href="Ledger.PParams.html#2146" class="Field">ccMinSize</a>          <a id="2165" class="Symbol">:</a> <a id="2167" href="Agda.Builtin.Nat.html#186" class="Datatype">ℕ</a>
+        <a id="PParams.ccMaxTermLength"></a><a id="2177" href="Ledger.PParams.html#2177" class="Field">ccMaxTermLength</a>    <a id="2196" class="Symbol">:</a> <a id="2198" href="Agda.Builtin.Nat.html#186" class="Datatype">ℕ</a>
+        <a id="PParams.minimumAVS"></a><a id="2208" href="Ledger.PParams.html#2208" class="Field">minimumAVS</a>         <a id="2227" class="Symbol">:</a> <a id="2229" href="Ledger.Prelude.Base.html#81" class="Function">Coin</a>
+
+<a id="paramsWellFormed"></a><a id="2235" href="Ledger.PParams.html#2235" class="Function">paramsWellFormed</a> <a id="2252" class="Symbol">:</a> <a id="2254" href="Ledger.PParams.html#1022" class="Record">PParams</a> <a id="2262" class="Symbol">→</a> <a id="2264" href="Agda.Builtin.Bool.html#156" class="Datatype">Bool</a>
+<a id="2269" href="Ledger.PParams.html#2235" class="Function">paramsWellFormed</a> <a id="2286" href="Ledger.PParams.html#2286" class="Bound">pp</a> <a id="2289" class="Symbol">=</a> <a id="2291" href="Interface.Decidable.Instance.html#796" class="Function Operator">¿</a> <a id="2293" class="Number">0</a> <a id="2295" href="Interface.IsSet.html#497" class="Function Operator">∉</a> <a id="2297" href="Axiom.Set.html#5489" class="Function">fromList</a>
+    <a id="2310" class="Symbol">(</a> <a id="2312" href="Ledger.PParams.html#1171" class="Field">maxBlockSize</a> <a id="2325" href="Agda.Builtin.List.html#182" class="InductiveConstructor Operator">∷</a> <a id="2327" href="Ledger.PParams.html#1202" class="Field">maxTxSize</a> <a id="2337" href="Agda.Builtin.List.html#182" class="InductiveConstructor Operator">∷</a> <a id="2339" href="Ledger.PParams.html#1233" class="Field">maxHeaderSize</a> <a id="2353" href="Agda.Builtin.List.html#182" class="InductiveConstructor Operator">∷</a> <a id="2355" href="Ledger.PParams.html#1264" class="Field">maxValSize</a> <a id="2366" href="Agda.Builtin.List.html#182" class="InductiveConstructor Operator">∷</a> <a id="2368" href="Ledger.PParams.html#1510" class="Field">minUTxOValue</a> <a id="2381" href="Agda.Builtin.List.html#182" class="InductiveConstructor Operator">∷</a> <a id="2383" href="Ledger.PParams.html#1544" class="Field">poolDeposit</a>
+    <a id="2399" href="Agda.Builtin.List.html#182" class="InductiveConstructor Operator">∷</a> <a id="2401" href="Ledger.PParams.html#1697" class="Field">collateralPercent</a> <a id="2419" href="Agda.Builtin.List.html#182" class="InductiveConstructor Operator">∷</a> <a id="2421" href="Ledger.PParams.html#2177" class="Field">ccMaxTermLength</a> <a id="2437" href="Agda.Builtin.List.html#182" class="InductiveConstructor Operator">∷</a> <a id="2439" href="Ledger.PParams.html#2012" class="Field">govActionLifetime</a> <a id="2457" href="Agda.Builtin.List.html#182" class="InductiveConstructor Operator">∷</a> <a id="2459" href="Ledger.PParams.html#2043" class="Field">govActionDeposit</a>
+    <a id="2480" href="Agda.Builtin.List.html#182" class="InductiveConstructor Operator">∷</a> <a id="2482" href="Ledger.PParams.html#2077" class="Field">drepDeposit</a> <a id="2494" href="Agda.Builtin.List.html#182" class="InductiveConstructor Operator">∷</a> <a id="2496" href="Agda.Builtin.List.html#167" class="InductiveConstructor">[]</a><a id="2498" class="Symbol">)</a>
+  <a id="2502" href="Data.Product.Base.html#1109" class="Function Operator">×</a> <a id="2504" href="Ledger.Epoch.html#3287" class="Function">ℕtoEpoch</a> <a id="2513" href="Ledger.PParams.html#2012" class="Field">govActionLifetime</a> <a id="2531" href="Interface.HasOrder.html#416" class="Field Operator">≤</a> <a id="2533" href="Ledger.PParams.html#2111" class="Field">drepActivity</a> <a id="2546" href="Interface.Decidable.Instance.html#796" class="Function Operator">¿ᵇ</a>
+  <a id="2551" class="Keyword">where</a> <a id="2557" class="Keyword">open</a> <a id="2562" href="Ledger.PParams.html#1022" class="Module">PParams</a> <a id="2570" href="Ledger.PParams.html#2286" class="Bound">pp</a>
+<a id="2573" class="Markup">\end{code}</a><a id="2583" class="Background">
+\end{AgdaAlign}
+} %% End: small
+\caption{Protocol parameter declarations}
+\label{fig:protocol-parameter-declarations}
+\end{figure*}
+\ProtVer represents the protocol version used in the Cardano ledger.
+It is a pair of natural numbers, representing the major and minor version,
+respectively.
+
+\PParams contains parameters used in the Cardano ledger, which we group according
+to the general purpose that each parameter serves.
+\begin{itemize}
+  \item \NetworkGroup: parameters related to the network settings;
+  \item \EconomicGroup: parameters related to the economic aspects of the ledger;
+  \item \TechnicalGroup: parameters related to technical settings;
+  \item \GovernanceGroup: parameters related to governance settings.
+\end{itemize}
+The first three of these groups contain protocol parameters that
+were already introduced during the Shelley, Alonzo and Babbage eras.
+The new protocol parameters introduced in the Conway era (CIP-1694) belong to \GovernanceGroup.
+These new parameters are declared in Figure~\ref{fig:protocol-parameter-declarations} and denote the following concepts.
+\begin{itemize}
+  \item \drepThresholds: governance thresholds for \DReps; these are rational numbers
+  named \Pone, \Ptwoa, \Ptwob, \Pthree, \Pfour, \Pfivea, \Pfiveb, \Pfivec, \Pfived, and \Psix;
+  \item \poolThresholds: pool-related governance thresholds; these are rational numbers named \Qone, \Qtwoa, \Qtwob, and \Qfour;
+  \item \ccMinSize: minimum constitutional committee size;
+  \item \ccMaxTermLength: maximum term limit (in epochs) of constitutional committee members;
+  \item \govActionLifetime: governance action expiration;
+  \item \govActionDeposit: governance action deposit;
+  \item \drepDeposit: \DRep deposit amount;
+  \item \drepActivity: \DRep activity period;
+  \item \minimumAVS: the minimum active voting threshold.
+\end{itemize}
+
+</a><a id="4428" class="Markup">\begin{code}[hide]</a>
+<a id="4447" class="Keyword">instance</a>
+  <a id="4458" class="Keyword">unquoteDecl</a> <a id="DecEq-DrepThresholds"></a><a id="4470" href="Ledger.PParams.html#4470" class="Function">DecEq-DrepThresholds</a> <a id="4491" class="Symbol">=</a> <a id="4493" href="Tactic.Derive.DecEq.html#3471" class="Function">derive-DecEq</a>
+    <a id="4510" class="Symbol">((</a><a id="4512" class="Keyword">quote</a> <a id="4518" href="Ledger.PParams.html#878" class="Record">DrepThresholds</a> <a id="4533" href="Agda.Builtin.Sigma.html#218" class="InductiveConstructor Operator">,</a> <a id="4535" href="Ledger.PParams.html#4470" class="Function">DecEq-DrepThresholds</a><a id="4555" class="Symbol">)</a> <a id="4557" href="Agda.Builtin.List.html#182" class="InductiveConstructor Operator">∷</a> <a id="4559" href="Agda.Builtin.List.html#167" class="InductiveConstructor">[]</a><a id="4561" class="Symbol">)</a>
+  <a id="4565" class="Keyword">unquoteDecl</a> <a id="DecEq-PoolThresholds"></a><a id="4577" href="Ledger.PParams.html#4577" class="Function">DecEq-PoolThresholds</a> <a id="4598" class="Symbol">=</a> <a id="4600" href="Tactic.Derive.DecEq.html#3471" class="Function">derive-DecEq</a>
+    <a id="4617" class="Symbol">((</a><a id="4619" class="Keyword">quote</a> <a id="4625" href="Ledger.PParams.html#961" class="Record">PoolThresholds</a> <a id="4640" href="Agda.Builtin.Sigma.html#218" class="InductiveConstructor Operator">,</a> <a id="4642" href="Ledger.PParams.html#4577" class="Function">DecEq-PoolThresholds</a><a id="4662" class="Symbol">)</a> <a id="4664" href="Agda.Builtin.List.html#182" class="InductiveConstructor Operator">∷</a> <a id="4666" href="Agda.Builtin.List.html#167" class="InductiveConstructor">[]</a><a id="4668" class="Symbol">)</a>
+  <a id="4672" class="Keyword">unquoteDecl</a> <a id="DecEq-PParams"></a><a id="4684" href="Ledger.PParams.html#4684" class="Function">DecEq-PParams</a>        <a id="4705" class="Symbol">=</a> <a id="4707" href="Tactic.Derive.DecEq.html#3471" class="Function">derive-DecEq</a>
+    <a id="4724" class="Symbol">((</a><a id="4726" class="Keyword">quote</a> <a id="4732" href="Ledger.PParams.html#1022" class="Record">PParams</a> <a id="4740" href="Agda.Builtin.Sigma.html#218" class="InductiveConstructor Operator">,</a> <a id="4742" href="Ledger.PParams.html#4684" class="Function">DecEq-PParams</a><a id="4755" class="Symbol">)</a> <a id="4757" href="Agda.Builtin.List.html#182" class="InductiveConstructor Operator">∷</a> <a id="4759" href="Agda.Builtin.List.html#167" class="InductiveConstructor">[]</a><a id="4761" class="Symbol">)</a>
+
+<a id="4764" class="Keyword">record</a> <a id="PParamsDiff"></a><a id="4771" href="Ledger.PParams.html#4771" class="Record">PParamsDiff</a> <a id="4783" class="Symbol">:</a> <a id="4785" href="Agda.Primitive.html#320" class="Primitive">Set₁</a> <a id="4790" class="Keyword">where</a>
+  <a id="4798" class="Keyword">field</a> <a id="PParamsDiff.UpdateT"></a><a id="4804" href="Ledger.PParams.html#4804" class="Field">UpdateT</a> <a id="4812" class="Symbol">:</a> <a id="4814" href="Agda.Primitive.html#320" class="Primitive">Set</a>
+        <a id="PParamsDiff.updateGroups"></a><a id="4826" href="Ledger.PParams.html#4826" class="Field">updateGroups</a> <a id="4839" class="Symbol">:</a> <a id="4841" href="Ledger.PParams.html#4804" class="Field">UpdateT</a> <a id="4849" class="Symbol">→</a> <a id="4851" href="Ledger.Prelude.html#1514" class="Function Operator">ℙ</a> <a id="4853" href="Ledger.PParams.html#772" class="Datatype">PParamGroup</a>
+        <a id="PParamsDiff.applyUpdate"></a><a id="4873" href="Ledger.PParams.html#4873" class="Field">applyUpdate</a> <a id="4885" class="Symbol">:</a> <a id="4887" href="Ledger.PParams.html#1022" class="Record">PParams</a> <a id="4895" class="Symbol">→</a> <a id="4897" href="Ledger.PParams.html#4804" class="Field">UpdateT</a> <a id="4905" class="Symbol">→</a> <a id="4907" href="Ledger.PParams.html#1022" class="Record">PParams</a>
+        <a id="PParamsDiff.ppdWellFormed"></a><a id="4923" href="Ledger.PParams.html#4923" class="Field">ppdWellFormed</a> <a id="4937" class="Symbol">:</a> <a id="4939" href="Ledger.PParams.html#4804" class="Field">UpdateT</a> <a id="4947" class="Symbol">→</a> <a id="4949" href="Agda.Builtin.Bool.html#156" class="Datatype">Bool</a>
+        <a id="PParamsDiff.ppdWellFormed⇒WF"></a><a id="4962" href="Ledger.PParams.html#4962" class="Field">ppdWellFormed⇒WF</a> <a id="4979" class="Symbol">:</a> <a id="4981" class="Symbol">∀</a> <a id="4983" class="Symbol">{</a><a id="4984" href="Ledger.PParams.html#4984" class="Bound">u</a><a id="4985" class="Symbol">}</a> <a id="4987" class="Symbol">→</a> <a id="4989" href="Ledger.PParams.html#4923" class="Field">ppdWellFormed</a> <a id="5003" href="Ledger.PParams.html#4984" class="Bound">u</a> <a id="5005" href="Agda.Builtin.Equality.html#133" class="Datatype Operator">≡</a> <a id="5007" href="Agda.Builtin.Bool.html#181" class="InductiveConstructor">true</a> <a id="5012" class="Symbol">→</a> <a id="5014" class="Symbol">∀</a> <a id="5016" href="Ledger.PParams.html#5016" class="Bound">pp</a>
+                         <a id="5044" class="Symbol">→</a> <a id="5046" href="Ledger.PParams.html#2235" class="Function">paramsWellFormed</a> <a id="5063" href="Ledger.PParams.html#5016" class="Bound">pp</a> <a id="5066" href="Agda.Builtin.Equality.html#133" class="Datatype Operator">≡</a> <a id="5068" href="Agda.Builtin.Bool.html#181" class="InductiveConstructor">true</a>
+                         <a id="5098" class="Symbol">→</a> <a id="5100" href="Ledger.PParams.html#2235" class="Function">paramsWellFormed</a> <a id="5117" class="Symbol">(</a><a id="5118" href="Ledger.PParams.html#4873" class="Field">applyUpdate</a> <a id="5130" href="Ledger.PParams.html#5016" class="Bound">pp</a> <a id="5133" href="Ledger.PParams.html#4984" class="Bound">u</a><a id="5134" class="Symbol">)</a> <a id="5136" href="Agda.Builtin.Equality.html#133" class="Datatype Operator">≡</a> <a id="5138" href="Agda.Builtin.Bool.html#181" class="InductiveConstructor">true</a>
+
+<a id="5144" class="Keyword">record</a> <a id="GovParams"></a><a id="5151" href="Ledger.PParams.html#5151" class="Record">GovParams</a> <a id="5161" class="Symbol">:</a> <a id="5163" href="Agda.Primitive.html#320" class="Primitive">Set₁</a> <a id="5168" class="Keyword">where</a>
+  <a id="5176" class="Keyword">field</a> <a id="GovParams.ppUpd"></a><a id="5182" href="Ledger.PParams.html#5182" class="Field">ppUpd</a> <a id="5188" class="Symbol">:</a> <a id="5190" href="Ledger.PParams.html#4771" class="Record">PParamsDiff</a>
+  <a id="5204" class="Keyword">open</a> <a id="5209" href="Ledger.PParams.html#4771" class="Module">PParamsDiff</a> <a id="5221" href="Ledger.PParams.html#5182" class="Field">ppUpd</a> <a id="5227" class="Keyword">renaming</a> <a id="5236" class="Symbol">(</a><a id="5237" href="Ledger.PParams.html#4804" class="Field">UpdateT</a> <a id="5245" class="Symbol">to</a> <a id="5248" class="Field">PParamsUpdate</a><a id="5261" class="Symbol">)</a> <a id="5263" class="Keyword">public</a>
+  <a id="5272" class="Keyword">field</a> <a id="GovParams.ppHashingScheme"></a><a id="5278" href="Ledger.PParams.html#5278" class="Field">ppHashingScheme</a> <a id="5294" class="Symbol">:</a> <a id="5296" href="Ledger.Crypto.html#190" class="Record">isHashableSet</a> <a id="5310" href="Ledger.PParams.html#1022" class="Record">PParams</a>
+  <a id="5320" class="Keyword">open</a> <a id="5325" href="Ledger.Crypto.html#190" class="Module">isHashableSet</a> <a id="5339" href="Ledger.PParams.html#5278" class="Field">ppHashingScheme</a> <a id="5355" class="Keyword">renaming</a> <a id="5364" class="Symbol">(</a><a id="5365" href="Ledger.Crypto.html#265" class="Field">THash</a> <a id="5371" class="Symbol">to</a> <a id="5374" class="Field">PPHash</a><a id="5380" class="Symbol">)</a> <a id="5382" class="Keyword">public</a>
+  <a id="5391" class="Keyword">field</a> <a id="5397" class="Symbol">⦃</a> <a id="GovParams.DecEq-UpdT"></a><a id="5399" href="Ledger.PParams.html#5399" class="Field">DecEq-UpdT</a> <a id="5410" class="Symbol">⦄</a> <a id="5412" class="Symbol">:</a> <a id="5414" href="Interface.DecEq.html#185" class="Record">DecEq</a> <a id="5420" href="Ledger.PParams.html#5248" class="Function">PParamsUpdate</a>
+<a id="5434" class="Markup">\end{code}</a><a id="5444" class="Background">
+</a></pre></body></html>
