@@ -15,21 +15,17 @@ open import Prelude public
 
 open import Ledger.Prelude.Base public
 
-open import Data.Maybe.Properties.Ext public
-open import Interface.Functor public
-open import Interface.Bifunctor public
+open import Relation.Nullary public
+open import Relation.Unary using () renaming (Decidable to Decidable¹) public
 open import Interface.DecEq.Ext public
 open import Interface.HasAdd public
 open import Interface.HasAdd.Instance public
 open import Interface.HasSubtract public
 open import Interface.HasSubtract.Instance public
-open import Interface.HasOrder public
-open import Interface.HasOrder.Instance public
 open import Interface.Decidable.Instance public
 open import Interface.ComputationalRelation public
 open import Ledger.Interface.HasCoin public
 open import MyDebugOptions public
-open import Tactic.DeriveComp public
 
 --------------------------------------------------------------------------------
 -- Set theory
@@ -45,7 +41,7 @@ abstract
   List-Modelᵈ : Theoryᵈ
   List-Modelᵈ = L.List-Modelᵈ
 
-open Theoryᵈ List-Modelᵈ renaming (Set to ℙ_; filter to filterˢ; map to mapˢ) public
+open Theoryᵈ List-Modelᵈ renaming (Set to ℙ_; filter to filterˢ) public
 
 abstract
   open import Axiom.Set.Properties th using (card-≡ᵉ)
@@ -71,9 +67,11 @@ abstract
   setToList : {A : Set} → ℙ A → List A
   setToList = id
 
-  instance
-    DecEq-ℙ : {A : Set} ⦃ _ : DecEq A ⦄ → DecEq (ℙ A)
-    DecEq-ℙ = L.Decˡ.DecEq-Set
+  setFromList : {A : Set} → List A → ℙ A
+  setFromList = id
+
+  ≟-∅ : {A : Set} ⦃ _ : DecEq A ⦄ → {X : ℙ A} → Dec (X ≡ ∅)
+  ≟-∅ = L.Decˡ.≟-∅
 
 open import Axiom.Set.Rel th public
   hiding (_∣'_; _↾'_)
@@ -85,7 +83,7 @@ open import Axiom.Set.TotalMap th public
 open import Axiom.Set.TotalMapOn th
 
 open L.Decˡ public
-  hiding (_∈?_; DecEq-Set)
+  hiding (_∈?_; ≟-∅)
 
 open import Axiom.Set.Sum th public
 open import Axiom.Set.Map.Dec List-Modelᵈ public
@@ -120,8 +118,3 @@ module Properties where
 
 _ᶠᵐ : {A B : Set} → A ⇀ B → FinMap A B
 (R , uniq) ᶠᵐ = (R , uniq , finiteness _)
-
-
-infix 2 All-syntax
-All-syntax = All
-syntax All-syntax (λ x → P) l = ∀[ x ∈ l ] P

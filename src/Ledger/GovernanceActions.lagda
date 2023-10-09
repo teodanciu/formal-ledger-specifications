@@ -15,12 +15,14 @@ open import Ledger.Crypto
 
 open import Ledger.Prelude renaming (yes to yesᵈ; no to noᵈ)
 open import Ledger.GovStructure
+
+open import Data.Nat using (_≤_)
 open import Data.Nat.Properties using (+-0-commutativeMonoid; +-0-monoid)
 open import Data.Rational using (ℚ; 0ℚ; 1ℚ)
 
 open import Tactic.Derive.DecEq
 
-module Ledger.GovernanceActions (gs : _) (open GovStructure gs) where
+module Ledger.GovernanceActions (⋯ : _) (open GovStructure ⋯) where
 
 2ℚ = 1ℚ Data.Rational.+ 1ℚ
 \end{code}
@@ -116,7 +118,7 @@ module _ (pp : PParams) (ccThreshold' : Maybe ℚ) where
     pparamThreshold GovernanceGroup = P5d
 
     P5 : PParamsUpdate → ℚ
-    P5 ppu = maximum $ mapˢ pparamThreshold (updateGroups ppu)
+    P5 ppu = maximum $ map pparamThreshold (updateGroups ppu)
 
     noVote : Maybe ℚ
     noVote = nothing
@@ -155,13 +157,14 @@ Ratified actions are then \defn{enacted} on-chain, following a set of rules (see
 {\small
 \begin{code}
 NeedsHash : GovAction → Set
-NeedsHash NoConfidence           = GovActionID
-NeedsHash (NewCommittee _ _ _)   = GovActionID
-NeedsHash (NewConstitution _ _)  = GovActionID
-NeedsHash (TriggerHF _)          = GovActionID
-NeedsHash (ChangePParams _)      = GovActionID
-NeedsHash (TreasuryWdrl _)       = ⊤
-NeedsHash Info                   = ⊤
+NeedsHash = λ where
+  NoConfidence           → GovActionID
+  (NewCommittee _ _ _)   → GovActionID
+  (NewConstitution _ _)  → GovActionID
+  (TriggerHF _)          → GovActionID
+  (ChangePParams _)      → GovActionID
+  (TreasuryWdrl _)       → ⊤
+  Info                   → ⊤
 
 HashProtected : Set → Set
 HashProtected A = A × GovActionID
@@ -263,10 +266,9 @@ protocol version, protocol parameters, withdrawals from treasury, and treasury b
 {\small
 \begin{code}
 record EnactEnv : Set where
-  constructor ⟦_,_,_⟧ᵉ
+  constructor ⟦_,_⟧ᵉ
   field gid       : GovActionID
         treasury  : Coin
-        epoch     : Epoch
 
 record EnactState : Set where
   field cc            : HashProtected (Maybe (Credential ⇀ Epoch × ℚ))
@@ -276,8 +278,8 @@ record EnactState : Set where
         withdrawals   : RwdAddr ⇀ Coin
 
 ccCreds : HashProtected (Maybe (Credential ⇀ Epoch × ℚ)) → ℙ Credential
-ccCreds (just x  , _)  = dom (x .proj₁ ˢ)
-ccCreds (nothing , _)  = ∅
+ccCreds (just x  , _) = dom (proj₁ x ˢ)
+ccCreds (nothing , _) = ∅
 \end{code}
 } %% end small
 \caption{Enactment types}
@@ -299,7 +301,6 @@ private variable
   wdrl : RwdAddr ⇀ Coin
   t : Coin
   gid : GovActionID
-  e : Epoch
 
 instance _ = +-0-monoid
 \end{code}
@@ -313,35 +314,33 @@ It represents how the \agdaboundEnactState changes when a specific governance ac
 data _⊢_⇀⦇_,ENACT⦈_ : EnactEnv → EnactState → GovAction → EnactState → Set where
 
   Enact-NoConf :
-    ⟦ gid , t , e ⟧ᵉ ⊢   s ⇀⦇ NoConfidence ,ENACT⦈
-                 record  s { cc = nothing , gid }
+    ⟦ gid , t ⟧ᵉ ⊢  s ⇀⦇ NoConfidence ,ENACT⦈
+             record s { cc = nothing , gid }
 
   Enact-NewComm : let old = maybe proj₁ ∅ᵐ (s .EnactState.cc .proj₁) in
-    ∀[ term ∈ range (new ˢ) ] term ≤ᵉ (s .pparams .proj₁ .PParams.ccMaxTermLength +ᵉ e)
-    ────────────────────────────────
-    ⟦ gid , t , e ⟧ᵉ ⊢  s ⇀⦇ NewCommittee new rem q ,ENACT⦈
-                record  s { cc = just ((new ∪ᵐˡ old) ∣ rem ᶜ , q) , gid }
+    ⟦ gid , t ⟧ᵉ ⊢  s ⇀⦇ NewCommittee new rem q ,ENACT⦈
+            record  s { cc = just ((new ∪ᵐˡ old) ∣ rem ᶜ , q) , gid }
 
   Enact-NewConst :
-    ⟦ gid , t , e ⟧ᵉ ⊢  s ⇀⦇ NewConstitution dh sh ,ENACT⦈
-                record  s { constitution = (dh , sh) , gid }
+    ⟦ gid , t ⟧ᵉ ⊢  s ⇀⦇ NewConstitution dh sh ,ENACT⦈
+            record  s { constitution = (dh , sh) , gid }
 
   Enact-HF :
-    ⟦ gid , t , e ⟧ᵉ ⊢   s ⇀⦇ TriggerHF v ,ENACT⦈
-                 record  s { pv = v , gid }
+    ⟦ gid , t ⟧ᵉ ⊢  s ⇀⦇ TriggerHF v ,ENACT⦈
+             record s { pv = v , gid }
 
   Enact-PParams :
-    ⟦ gid , t , e ⟧ᵉ ⊢  s ⇀⦇ ChangePParams up ,ENACT⦈
-                record  s { pparams = applyUpdate (s .pparams .proj₁) up , gid }
+    ⟦ gid , t ⟧ᵉ ⊢  s ⇀⦇ ChangePParams up ,ENACT⦈
+            record  s { pparams = applyUpdate (s .pparams .proj₁) up , gid }
 
   Enact-Wdrl : let newWdrls = s .withdrawals ∪⁺ wdrl in
     Σᵐᵛ[ x ← newWdrls ᶠᵐ ] x ≤ t
     ────────────────────────────────
-    ⟦ gid , t , e ⟧ᵉ ⊢  s ⇀⦇ TreasuryWdrl wdrl  ,ENACT⦈
-                record  s { withdrawals  = newWdrls }
+    ⟦ gid , t ⟧ᵉ ⊢  s ⇀⦇ TreasuryWdrl wdrl  ,ENACT⦈
+            record  s { withdrawals  = newWdrls }
 
   Enact-Info :
-    ⟦ gid , t , e ⟧ᵉ ⊢  s ⇀⦇ Info  ,ENACT⦈ s
+    ⟦ gid , t ⟧ᵉ ⊢  s ⇀⦇ Info  ,ENACT⦈ s
 \end{code}
 } %% end small
 \caption{ENACT transition system}
@@ -349,17 +348,14 @@ data _⊢_⇀⦇_,ENACT⦈_ : EnactEnv → EnactState → GovAction → EnactSta
 \end{figure*}
 
 \begin{code}[hide]
-open Computational ⦃...⦄
+open import Interface.Decidable.Instance
+open Computational' ⦃...⦄
 
 instance
-  Computational-ENACT : Computational _⊢_⇀⦇_,ENACT⦈_
-  Computational-ENACT .computeProof ⟦ _ , t , e ⟧ᵉ s = λ where
-    NoConfidence             → just (_ , Enact-NoConf)
-    (NewCommittee new rem q) →
-      case ¿ ∀[ term ∈ range (new ˢ) ]
-               term ≤ᵉ (s .pparams .proj₁ .PParams.ccMaxTermLength +ᵉ e) ¿ of λ where
-      (yesᵈ p) → just (-, Enact-NewComm p)
-      (noᵈ ¬p) → nothing
+  Computational'-ENACT : Computational' _⊢_⇀⦇_,ENACT⦈_
+  Computational'-ENACT .computeProof ⟦ _ , t ⟧ᵉ s = λ where
+    NoConfidence             → just (-, Enact-NoConf)
+    (NewCommittee new rem q) → just (-, Enact-NewComm)
     (NewConstitution dh sh)  → just (-, Enact-NewConst)
     (TriggerHF v)            → just (-, Enact-HF)
     (ChangePParams up)       → just (-, Enact-PParams)
@@ -368,19 +364,18 @@ instance
       case ¿ Σᵐᵛ[ x ← (s .withdrawals ∪⁺ wdrl) ᶠᵐ ] x ≤ t ¿ of λ where
         (yesᵈ p)             → just (-, Enact-Wdrl p)
         (noᵈ _)              → nothing
-  Computational-ENACT .completeness ⟦ _ , t , e ⟧ᵉ s action _ p
+  Computational'-ENACT .completeness ⟦ _ , t ⟧ᵉ s action _ p
     with action | p
   ... | .NoConfidence           | Enact-NoConf   = refl
-  ... | .NewCommittee new rem q | Enact-NewComm p
-    rewrite dec-yes
-      (¿ ∀[ term ∈ range (new ˢ) ] term
-           ≤ᵉ (s .pparams .proj₁ .PParams.ccMaxTermLength +ᵉ e) ¿) p .proj₂
-      = refl
+  ... | .NewCommittee new rem q | Enact-NewComm  = refl
   ... | .NewConstitution dh sh  | Enact-NewConst = refl
   ... | .TriggerHF v            | Enact-HF       = refl
   ... | .ChangePParams up       | Enact-PParams  = refl
   ... | .Info                   | Enact-Info     = refl
   ... | .TreasuryWdrl wdrl      | Enact-Wdrl p
-    rewrite dec-yes (¿ (Σᵐᵛ[ x ← (s .withdrawals ∪⁺ wdrl) ᶠᵐ ] x) ≤ t ¿) p .proj₂
-    = refl
+      with ¿ (Σᵐᵛ[ x ← (s .withdrawals ∪⁺ wdrl) ᶠᵐ ] x) ≤ t ¿ | "bug"
+  ... | yesᵈ p | _ = refl
+  ... | noᵈ ¬p | _ = ⊥-elim (¬p p)
+
+  Computational-ENACT = fromComputational' Computational'-ENACT
 \end{code}

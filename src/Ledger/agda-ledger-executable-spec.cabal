@@ -1,5 +1,5 @@
 cabal-version:      2.4
-name:               midnight-example
+name:               agda-ledger-executable-spec
 version:            0.1.0.0
 synopsis:
 
@@ -18,30 +18,23 @@ maintainer:         andre.knispel@iohk.io
 -- category:
 extra-source-files: CHANGELOG.md
 
-executable main
-    main-is: Main.hs
-    ghc-options: -Wno-missing-home-modules
+library
+    exposed-modules:
+        HSLedgerTest
+
+    other-extensions:
+        CPP PolyKinds EmptyDataDecls EmptyCase ExistentialQuantification
+        ScopedTypeVariables NoMonomorphismRestriction RankNTypes
+        PatternSynonyms DeriveGeneric
+
     build-depends:
         base,
         text,
         ieee,
-        midnight-example
+        tree-diff
 
-library
-    exposed-modules:
-        Lib
-    build-depends:
-        base,
-        text,
-        ieee
-    hs-source-dirs: .
+    ghc-options: -Wno-overlapping-patterns
+    hs-source-dirs:   .
     default-language: Haskell2010
-    ghc-options:
-        -Wno-overlapping-patterns
-    other-extensions:
-        CPP PolyKinds EmptyDataDecls EmptyCase ExistentialQuantification
-        ScopedTypeVariables NoMonomorphismRestriction RankNTypes
-        PatternSynonyms
-
 -- This will be generated automatically when building with nix
     other-modules:

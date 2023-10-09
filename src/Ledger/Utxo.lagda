@@ -5,17 +5,21 @@
 
 \begin{code}[hide]
 {-# OPTIONS --safe #-}
+{-# OPTIONS --overlapping-instances #-}
 
 open import Algebra              using (CommutativeMonoid)
 open import Data.Integer.Ext     using (posPart; negPart)
+open import Data.Nat             using (_≤?_; _≤_)
 open import Data.Nat.Properties  using (+-0-monoid; +-0-commutativeMonoid)
+import Data.Maybe as M
 
+open import Tactic.DeriveComp
 open import Tactic.Derive.DecEq
 
 open import Ledger.Prelude
 open import Ledger.Transaction
 
-module Ledger.Utxo (txs : _) (open TransactionStructure txs) where
+module Ledger.Utxo (⋯ : _) (open TransactionStructure ⋯) where
 
 instance
   _ = TokenAlgebra.Value-CommutativeMonoid tokenAlgebra
@@ -60,7 +64,7 @@ module _ (open TxBody) where
 \end{code}
 \begin{code}
   outs : TxBody → UTxO
-  outs tx = mapKeys (tx .txid ,_) (tx .txouts)
+  outs tx = mapKeys (tx .txid ,_) (tx .txouts) λ where _ _ refl → refl
 
   balance : UTxO → Value
   balance utxo = Σᵐᵛ[ x ← utxo ᶠᵐ ] getValue x
@@ -77,35 +81,38 @@ module _ (open TxBody) where
     DRepDeposit        : Credential   → DepositPurpose
     GovActionDeposit   : GovActionID  → DepositPurpose
 
-  certDeposit : PParams → DCert → Maybe (DepositPurpose × Coin)
-  certDeposit _  (delegate c _ _ v)  = just (CredentialDeposit c , v)
-  certDeposit pp (regpool c _)       = just (PoolDeposit       c , pp .poolDeposit)
-  certDeposit _  (regdrep c v _)     = just (DRepDeposit       c , v)
-  certDeposit _  _                   = nothing
+  module _ (pp : PParams) where
+    certDeposit : DCert → Maybe (DepositPurpose × Coin)
+    certDeposit = λ where
+      (delegate c _ _ v)  → just (CredentialDeposit c , v)
+      (regpool c _)       → just (PoolDeposit       c , pp .poolDeposit)
+      (regdrep c v _)     → just (DRepDeposit       c , v)
+      _                   → nothing
 
-  certDepositᵐ : PParams → DCert → DepositPurpose ⇀ Coin
-  certDepositᵐ pp cert = case certDeposit pp cert of λ where
-    (just (p , v))  → ❴ p , v ❵ᵐ
-    nothing         → ∅ᵐ
+    certDepositᵐ : DCert → DepositPurpose ⇀ Coin
+    certDepositᵐ cert = case certDeposit cert of λ where
+      (just (p , v))  → ❴ p , v ❵ᵐ
+      nothing         → ∅ᵐ
 
-  propDepositᵐ : PParams → GovActionID → GovProposal → DepositPurpose ⇀ Coin
-  propDepositᵐ pp gaid record { returnAddr = record { stake = c } }
-    = ❴ GovActionDeposit gaid , pp .govActionDeposit ❵ᵐ
+    propDepositᵐ : GovActionID → GovProposal → DepositPurpose ⇀ Coin
+    propDepositᵐ gaid record { returnAddr = record { stake = c } }
+      = ❴ GovActionDeposit gaid , pp .govDeposit ❵ᵐ
 
   certRefund : DCert → Maybe DepositPurpose
-  certRefund (delegate c nothing nothing x)  = just (CredentialDeposit c)
-  certRefund (deregdrep c)                   = just (DRepDeposit       c)
-  certRefund _                               = nothing
+  certRefund = λ where
+    (delegate c nothing nothing x)  → just (CredentialDeposit c)
+    (deregdrep c)                   → just (DRepDeposit       c)
+    _                               → nothing
 
   certRefundˢ : DCert → ℙ DepositPurpose
   certRefundˢ = partialToSet certRefund
 
   -- this has to be a type definition for inference to work
   data inInterval (slot : Slot) : (Maybe Slot × Maybe Slot) → Set where
-    both   : ∀ {l r}  → l ≤ slot × slot ≤ r  →  inInterval slot (just l   , just r)
-    lower  : ∀ {l}    → l ≤ slot             →  inInterval slot (just l   , nothing)
-    upper  : ∀ {r}    → slot ≤ r             →  inInterval slot (nothing  , just r)
-    none   :                                    inInterval slot (nothing  , nothing)
+    both   : ∀ {l r}  → l ≤ˢ slot × slot ≤ˢ r  →  inInterval slot (just l   , just r)
+    lower  : ∀ {l}    → l ≤ˢ slot              →  inInterval slot (just l   , nothing)
+    upper  : ∀ {r}    → slot ≤ˢ r              →  inInterval slot (nothing  , just r)
+    none   :                                      inInterval slot (nothing  , nothing)
 
 \end{code}
 \begin{code}[hide]
@@ -149,21 +156,22 @@ record UTxOState : Set where
 ⟦_⟧ : {A : Set} → A → A
 ⟦_⟧ = id
 
-open HasDecPartialOrder ⦃ ... ⦄
 instance
-  netId? : ∀ {A : Set} {networkId : Network} {f : A → Network}
-    → Dec₁ (λ a → f a ≡ networkId)
+  _ = ≟-∅
+
+  netId? : ∀ {A : Set} {networkId : Network} {f : A → Network} →
+    Dec₁ (λ a → f a ≡ networkId)
   netId? {_} {networkId} {f} .Dec₁.P? a = f a ≟ networkId
 
-  Dec-inInterval : {slot : Slot} {I : Maybe Slot × Maybe Slot} → Dec (inInterval slot I)
-  Dec-inInterval {slot} {just x  , just y } with x ≤? slot | slot ≤? y
+  Dec-inInterval : ∀ {slot} {I : Maybe Slot × Maybe Slot} → Dec (inInterval slot I)
+  Dec-inInterval {slot} {just x  , just y } with x ≤ˢ? slot | slot ≤ˢ? y
   ... | no ¬p₁ | _      = no λ where (both (h₁ , h₂)) → ¬p₁ h₁
   ... | yes p₁ | no ¬p₂ = no λ where (both (h₁ , h₂)) → ¬p₂ h₂
   ... | yes p₁ | yes p₂ = yes (both (p₁ , p₂))
-  Dec-inInterval {slot} {just x  , nothing} with x ≤? slot
+  Dec-inInterval {slot} {just x  , nothing} with x ≤ˢ? slot
   ... | no ¬p = no  (λ where (lower h) → ¬p h)
   ... | yes p = yes (lower p)
-  Dec-inInterval {slot} {nothing , just x } with slot ≤? x
+  Dec-inInterval {slot} {nothing , just x } with slot ≤ˢ? x
   ... | no ¬p = no  (λ where (upper h) → ¬p h)
   ... | yes p = yes (upper p)
   Dec-inInterval {slot} {nothing , nothing} = yes none
@@ -184,49 +192,44 @@ data
 
 \begin{figure*}
 \begin{code}
-\end{code}
-\begin{code}[hide]
-module _ (let open UTxOState; open TxBody) where
-\end{code}
-\begin{code}
-  updateCertDeposits : PParams → List DCert → DepositPurpose ⇀ Coin
-    → DepositPurpose ⇀ Coin
-  updateCertDeposits pp [] deposits = deposits
-  updateCertDeposits pp (cert ∷ certs) deposits
-    =  updateCertDeposits pp certs deposits ∪⁺ certDepositᵐ pp cert
-    ∣  certRefundˢ cert ᶜ
+module _ (pp : PParams) where
+  updateCertDeposits : List DCert → DepositPurpose ⇀ Coin → DepositPurpose ⇀ Coin
+  updateCertDeposits = flip go where go = λ deposits → λ where
+    [] → deposits
+    (cert ∷ certs)  →  ((updateCertDeposits certs deposits) ∪⁺ certDepositᵐ pp cert)
+                    ∣  certRefundˢ cert ᶜ
 
-  updateProposalDeposits : PParams → TxId → List GovProposal → DepositPurpose ⇀ Coin
-    → DepositPurpose ⇀ Coin
-  updateProposalDeposits pp txid [] deposits = deposits
-  updateProposalDeposits pp txid (prop ∷ props) deposits
-    =   updateProposalDeposits pp txid props deposits
-    ∪⁺  propDepositᵐ pp (txid , length props) prop
+  updateProposalDeposits :
+    TxId → List GovProposal → DepositPurpose ⇀ Coin → DepositPurpose ⇀ Coin
+  updateProposalDeposits txid = flip go where go = λ deposits → λ where
+    [] → deposits
+    (prop ∷ props)  →   updateProposalDeposits txid props deposits
+                    ∪⁺  propDepositᵐ pp (txid , length props) prop
 
-  updateDeposits : PParams → TxBody → DepositPurpose ⇀ Coin → DepositPurpose ⇀ Coin
-  updateDeposits pp txb
-    =  updateCertDeposits pp (txb .txcerts)
-    ∘  updateProposalDeposits pp (txb .txid) (txb .txprop)
+  module _ (txb : _) (open TxBody txb) where
+    updateDeposits : DepositPurpose ⇀ Coin → DepositPurpose ⇀ Coin
+    updateDeposits  =  updateCertDeposits txcerts
+                    ∘  updateProposalDeposits txid txprop
 
-  depositsChange : PParams → TxBody → DepositPurpose ⇀ Coin → ℤ
-  depositsChange pp txb deposits
-    =  getCoin (updateDeposits pp txb deposits)
-    ⊖  getCoin deposits
+    depositsChange : DepositPurpose ⇀ Coin → ℤ
+    depositsChange deposits  =  getCoin (updateDeposits deposits)
+                             ⊖  getCoin deposits
 
-  depositRefunds newDeposits : PParams → UTxOState → TxBody → Coin
-  depositRefunds  pp st txb = negPart  $ depositsChange pp txb (st .deposits)
-  newDeposits     pp st txb = posPart  $ depositsChange pp txb (st .deposits)
+  module _ (st : _) (open UTxOState st) (txb : _) (open TxBody txb) where
+    private dc = depositsChange txb deposits
 
-  consumed produced : PParams → UTxOState → TxBody → Value
-  consumed pp st txb
-    =  balance (st .utxo ∣ txb .txins)
-    +  txb .mint
-    +  inject (depositRefunds pp st txb)
-  produced pp st txb
-    =  balance (outs txb)
-    +  inject (txb .txfee)
-    +  inject (newDeposits pp st txb)
-    +  inject (txb .txdonation)
+    depositRefunds newDeposits : Coin
+    depositRefunds  = negPart  dc
+    newDeposits     = posPart  dc
+
+    consumed produced : Value
+    consumed  = balance (utxo ∣ txins)
+              + mint
+              + inject depositRefunds
+    produced  = balance (outs txb)
+              + inject txfee
+              + inject newDeposits
+              + inject txdonation
 \end{code}
 \caption{Functions used in UTxO rules, continued}
 \label{fig:functions:utxo-2}
@@ -249,47 +252,51 @@ data _⊢_⇀⦇_,UTXO⦈_ where
     →  inInterval slot txvldt               → minfee pp tx ≤ txfee
     →  consumed pp s tx ≡ produced pp s tx  → coin mint ≡ 0
     →  txsize ≤ maxTxSize pp
-       ────────────────────────────────
-       Γ ⊢ s ⇀⦇ tx ,UTXO⦈  ⟦ (utxo ∣ txins ᶜ) ∪ᵐˡ (outs tx)
-                           , fees + txfee
-                           , updateDeposits pp tx deposits
-                           , donations + txdonation
-                           ⟧ᵘ
+    ────────────────────────────────
+    Γ ⊢ s ⇀⦇ tx ,UTXO⦈  ⟦ (utxo ∣ txins ᶜ) ∪ᵐˡ (outs tx)
+                        , fees + txfee
+                        , updateDeposits pp tx deposits
+                        , donations + txdonation
+                        ⟧ᵘ
 \end{code}
 \begin{code}[hide]
+open Computational'
 instance
-  Computational-UTXO : Computational _⊢_⇀⦇_,UTXO⦈_
-  Computational-UTXO = record {go} where module go Γ s tx where
+  Computational'-UTXO : Computational' _⊢_⇀⦇_,UTXO⦈_
+  Computational'-UTXO .computeProof Γ s tx =
+    let open TxBody tx
+        open UTxOEnv Γ renaming (pparams to pp)
+        open UTxOState s
+    in
+    case ¿ txins ≢ ∅
+         × txins ⊆ dom (utxo ˢ)
+         × inInterval slot txvldt
+         × minfee pp tx ≤ txfee
+         × consumed pp s tx ≡ produced pp s tx
+         × coin mint ≡ 0
+         × txsize ≤ maxTxSize pp
+         ¿ of λ where
+      (yes (p₀ , p₁ , p₂ , p₃ , p₄ , p₅ , p₆)) →
+        just (_ , UTXO-inductive p₀ p₁ p₂ p₃ p₄ p₅ p₆)
+      (no _) → nothing
+  Computational'-UTXO .completeness Γ s tx s'
+    h@(UTXO-inductive q₀ q₁ q₂ q₃ q₄ q₅ q₆) = QED
+    where
     open TxBody tx
     open UTxOEnv Γ renaming (pparams to pp)
     open UTxOState s
+    QED : M.map proj₁ (computeProof Computational'-UTXO Γ s tx) ≡ just s'
+    QED with ¿ txins ≢ ∅
+             × txins ⊆ dom (utxo ˢ)
+             × inInterval slot txvldt
+             × minfee pp tx ≤ txfee
+             × consumed pp s tx ≡ produced pp s tx
+             × coin mint ≡ 0
+             × txsize ≤ maxTxSize pp ¿ | "work around mysterious Agda bug"
+    ... | yes (p₀ , p₁ , p₂ , p₃ , p₄ , p₅ , p₆) | _ = refl
+    ... | no q | _ = ⊥-elim (q (q₀ , q₁ , q₂ , q₃ , q₄ , q₅ , q₆))
 
-    UTXO-premises : Set
-    UTXO-premises
-      = txins ≢ ∅
-      × txins ⊆ dom (utxo ˢ)
-      × inInterval slot txvldt
-      × minfee pp tx ≤ txfee
-      × consumed pp s tx ≡ produced pp s tx
-      × coin mint ≡ 0
-      × txsize ≤ maxTxSize pp
-
-    UTXO-premises? : Dec UTXO-premises
-    UTXO-premises? = ¿ UTXO-premises ¿
-
-    computeProof =
-      case UTXO-premises? of λ where
-        (yes (p₀ , p₁ , p₂ , p₃ , p₄ , p₅ , p₆)) →
-          just (_ , UTXO-inductive p₀ p₁ p₂ p₃ p₄ p₅ p₆)
-        (no _) → nothing
-
-    completeness : ∀ s' → Γ ⊢ s ⇀⦇ tx ,UTXO⦈ s' → _
-    completeness s' h@(UTXO-inductive q₀ q₁ q₂ q₃ q₄ q₅ q₆) = QED
-      where
-      QED : map proj₁ computeProof ≡ just s'
-      QED with UTXO-premises?
-      ... | yes (p₀ , p₁ , p₂ , p₃ , p₄ , p₅ , p₆) = refl
-      ... | no q = ⊥-elim (q (q₀ , q₁ , q₂ , q₃ , q₄ , q₅ , q₆))
+  Computational-UTXO = fromComputational' Computational'-UTXO
 \end{code}
 \caption{UTXO inference rules}
 \label{fig:rules:utxo-shelley}

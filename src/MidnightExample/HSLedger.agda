@@ -1,18 +1,21 @@
+{-# OPTIONS --overlapping-instances #-}
 module MidnightExample.HSLedger where
 
 open import Prelude hiding (_++_)
 
 open import Interface.Hashable
 open import Interface.DecEq
-open import Interface.Functor
 
 open import Data.Integer hiding (show)
 import Data.Integer.Show as Z
 import Data.Nat.Show as N
+import Data.List
+import Data.Maybe
 open import Data.String using (_++_)
 
 import MidnightExample.Types as F
-open F using (Hash)
+
+Hash = ℕ
 
 instance
   Hashable-String = Hashable String Hash ∋ λ where .hash → F.hash
@@ -27,6 +30,7 @@ instance
 open import MidnightExample.Ledger Hash
 
 open import Foreign.Convertible
+open import Foreign.Haskell.Coerce
 
 instance
   Convertible-Point : Convertible Point F.Point
@@ -64,10 +68,10 @@ instance
   Convertible-Block = λ where
     .to p → let open Block p in record
       { header = to header
-      ; body   = to <$> body }
+      ; body   = Data.List.map to body }
     .from p → let open F.Block p in record
       { header = from header
-      ; body   = from <$> body }
+      ; body   = Data.List.map from body }
 
   Convertible-LedgerState : Convertible LedgerState F.LedgerState
   Convertible-LedgerState = λ where
@@ -83,7 +87,7 @@ instance
       ; snapshot2 = snapshot2 }
 
 ledgerStep : F.LedgerState → F.Block → Maybe F.LedgerState
-ledgerStep s b = to <$> LEDGER-step _ (from s) (from b)
+ledgerStep s b = Data.Maybe.map to $ LEDGER-step _ (from s) (from b)
 
 {-# COMPILE GHC ledgerStep as ledgerStep #-}
 

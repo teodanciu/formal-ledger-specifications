@@ -1,7 +1,7 @@
 {-# OPTIONS --safe --no-import-sorts #-}
 
-open import Agda.Primitive using (lzero) renaming (Set to Type)
-open import Axiom.Set using (Theory)
+open import Agda.Primitive renaming (Set to Type)
+open import Axiom.Set
 open import Algebra using (CommutativeMonoid)
 
 open import Prelude
@@ -13,13 +13,14 @@ open import Axiom.Set.Properties th
 open import Axiom.Set.Rel th
 open import Axiom.Set.Map th
 
-open import Algebra.Properties.CommutativeSemigroup using (x∙yz≈y∙xz)
-open import Data.List.Ext.Properties using (dedup-++-↭)
+open import Algebra.Properties.CommutativeSemigroup
+open import Data.List.Ext.Properties
 open import Data.List.Relation.Binary.Permutation.Propositional
-open import Data.List.Relation.Unary.Unique.Propositional using (Unique)
-open import Interface.DecEq using (DecEq; _≟_)
-open import Relation.Binary using (_Preserves_⟶_; IsEquivalence)
-open import Relation.Unary using (Decidable)
+open import Data.List.Relation.Unary.Unique.Propositional
+open import Interface.DecEq
+open import Relation.Binary hiding (Rel)
+open import Relation.Nullary.Decidable using (¬?)
+open import Relation.Unary using () renaming (Decidable to Decidable¹)
 
 open import Tactic.AnyOf
 open import Tactic.Defaults
@@ -68,8 +69,8 @@ fold-cong↭ (trans h h₁) = ≈-trans (fold-cong↭ h) (fold-cong↭ h₁)
 indexedSum : ⦃ _ : DecEq A ⦄ → (A → Carrier) → FinSet A → Carrier
 indexedSum f = let open FactorUnique _≈_ (indexedSumL' f) fold-cong↭ in factor
 
-indexedSumL-++ : {l l' : List A}
-  → indexedSumL f (l ++ l') ≈ indexedSumL f l ∙ indexedSumL f l'
+indexedSumL-++ : {l l' : List A} →
+  indexedSumL f (l ++ l') ≈ indexedSumL f l ∙ indexedSumL f l'
 indexedSumL-++ {f = f} {l = l} {l'} = begin
   indexedSumL f (l ++ l')                   ≡⟨ foldr-++ (λ x → f x ∙_) ε l l' ⟩
   foldr (λ x → f x ∙_) (indexedSumL f l') l ≈⟨ helper (indexedSumL f l') l f ⟩
@@ -101,8 +102,8 @@ module _ ⦃ _ : DecEq A ⦄ {f : A → Carrier} where
   indexedSum-singleton : ∀ {x} → indexedSum f (❴ x ❵ , singleton-finite) ≈ f x
   indexedSum-singleton = identityʳ _
 
-  indexedSum-singleton' : ∀ {x} → (pf : finite ❴ x ❵)
-    → indexedSum f (❴ x ❵ , pf) ≈ f x
+  indexedSum-singleton' : ∀ {x} → (pf : finite ❴ x ❵) →
+    indexedSum f (❴ x ❵ , pf) ≈ f x
   indexedSum-singleton' {x = x} pf =
     ≈-trans (indexedSum-cong {x = -, pf} {y = -, singleton-finite} ≡ᵉ.refl)
             indexedSum-singleton
@@ -116,13 +117,11 @@ module _ ⦃ _ : DecEq A ⦄ ⦃ _ : DecEq B ⦄ where
   indexedSumᵐᵛ : (B → Carrier) → FinMap A B → Carrier
   indexedSumᵐᵛ f = indexedSumᵐ (f ∘ proj₂)
 
-  indexedSumᵐ-cong : {f : A × B → Carrier}
-    → indexedSumᵐ f Preserves (_≡ᵉ_ on proj₁) ⟶ _≈_
+  indexedSumᵐ-cong : {f : A × B → Carrier} →
+    indexedSumᵐ f Preserves (_≡ᵉ_ on proj₁) ⟶ _≈_
   indexedSumᵐ-cong {x = x , _ , h} {y , _ , h'} = indexedSum-cong {x = x , h} {y , h'}
 
-  module IndexedSumUnionᵐ
-    (sp-∈ : spec-∈ A) (∈-A-dec : {X : Set A} → Decidable¹ (_∈ X)) where
-
+  module IndexedSumUnionᵐ (sp-∈ : spec-∈ A) (∈-A-dec : {X : Set A} → Decidable¹ (_∈ X)) where
     open Unionᵐ sp-∈
 
     ∪ᵐˡ-finite : {R R' : Rel A B} → finite R → finite R' → finite (R ∪ᵐˡ' R')

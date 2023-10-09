@@ -1,6 +1,7 @@
-module Main where
+module HSLedgerTest (module HSLedgerTest, module MAlonzo.Code.Ledger.Foreign.LedgerTypes, module MAlonzo.Code.Ledger.Foreign.HSLedger) where
 
-import Lib
+import MAlonzo.Code.Ledger.Foreign.HSLedger
+import MAlonzo.Code.Ledger.Foreign.LedgerTypes
 
 initParams :: PParams
 initParams = MkPParams

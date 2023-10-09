@@ -3,15 +3,17 @@
 \begin{code}[hide]
 {-# OPTIONS --safe #-}
 
+import Data.List as L
+
 open import Ledger.Prelude
 open import Ledger.Transaction using (TransactionStructure)
 
-module Ledger.Ledger (txs : _) (open TransactionStructure txs) where
+module Ledger.Ledger (⋯ : _) (open TransactionStructure ⋯) where
 
 open import Ledger.Gov govStructure
-open import Ledger.PPUp txs
-open import Ledger.Utxo txs
-open import Ledger.Utxow txs
+open import Ledger.PPUp  ⋯
+open import Ledger.Utxo  ⋯
+open import Ledger.Utxow ⋯
 open Tx
 \end{code}
 
@@ -34,9 +36,8 @@ record LState : Set where
         certState  : CertState
 
 txgov : TxBody → List (GovVote ⊎ GovProposal)
-txgov txb = map inj₁ txvote ++ map inj₂ txprop
-  where open TxBody txb
-
+txgov txb = let open TxBody txb in
+  L.map inj₁ txvote ++ L.map inj₂ txprop
 \end{code}
 \caption{Types and functions for the LEDGER transition system}
 \end{figure*}
@@ -70,19 +71,19 @@ data
 \begin{figure*}[h]
 \begin{code}
   LEDGER : let open LState s; txb = tx .body; open TxBody txb; open LEnv Γ in
-       record { LEnv Γ } ⊢ utxoSt ⇀⦇ tx ,UTXOW⦈ utxoSt'
-    →  ⟦ epoch slot , pparams , txvote ⟧ᶜ ⊢ certState ⇀⦇ txcerts ,CERTS⦈ certState'
-    →  ⟦ txid , epoch slot , pparams ⟧ᵗ ⊢ govSt ⇀⦇ txgov txb ,GOV⦈ govSt'
-    →  mapˢ stake (dom (txwdrls ˢ)) ⊆ dom (certState' .dState .voteDelegs ˢ)
-       ────────────────────────────────
-       Γ ⊢ s ⇀⦇ tx ,LEDGER⦈ ⟦ utxoSt' , govSt' , certState' ⟧ˡ
+    record { LEnv Γ } ⊢ utxoSt ⇀⦇ tx ,UTXOW⦈ utxoSt'
+    → ⟦ epoch slot , pparams , txvote ⟧ᶜ ⊢ certState ⇀⦇ txcerts ,CERTS⦈ certState'
+    → ⟦ txid , epoch slot , pparams ⟧ᵗ ⊢ govSt ⇀⦇ txgov txb ,GOV⦈ govSt'
+    → map stake (dom (txwdrls ˢ)) ⊆ dom (certState' .dState .voteDelegs ˢ)
+    ────────────────────────────────
+    Γ ⊢ s ⇀⦇ tx ,LEDGER⦈ ⟦ utxoSt' , govSt' , certState' ⟧ˡ
 \end{code}
 \caption{LEDGER transition system}
 \end{figure*}
 \begin{figure*}[h]
 \begin{code}
 _⊢_⇀⦇_,LEDGERS⦈_ : LEnv → LState → List Tx → LState → Set
-_⊢_⇀⦇_,LEDGERS⦈_ = SS⇒BS _⊢_⇀⦇_,LEDGER⦈_
+_⊢_⇀⦇_,LEDGERS⦈_ = SS⇒BS λ (Γ , _) → Γ ⊢_⇀⦇_,LEDGER⦈_
 \end{code}
 \caption{LEDGERS transition system}
 \end{figure*}

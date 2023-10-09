@@ -55,8 +55,9 @@ module Decˡ {A : Type} ⦃ _ : DecEq A ⦄ where
   _∈?_ : Dec₂ (_∈ˡ_ {A = A})
   _∈?_ a = Any.any? (a ≟_)
 
-  DecEq-Set : DecEq (Set A)
-  DecEq-Set = DecEq-List
+  ≟-∅ : {X : Set A} → Dec (X ≡ ∅)
+  ≟-∅ {[]}    = yes refl
+  ≟-∅ {x ∷ X} = no (λ ())
 
 List-Modelᵈ : Theoryᵈ
 List-Modelᵈ = record

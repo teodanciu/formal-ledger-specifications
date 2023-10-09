@@ -3,11 +3,10 @@
 \include{preamble}
 
 \begin{document}
-
 \tableofcontents
 
 \begin{code}[hide]
-{-# OPTIONS --safe #-}
+{-# OPTIONS  #-}
 
 module Ledger.PDF where
 

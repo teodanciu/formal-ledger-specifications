@@ -14,7 +14,7 @@ open import Ledger.Prelude
 open import Ledger.Epoch
 open import Ledger.Crypto
 
-module Ledger.PParams (es : _) (open EpochStructure es) where
+module Ledger.PParams (⋯ : _) (open EpochStructure ⋯) where
 \end{code}
 \begin{figure*}[h!]
 {\small
@@ -62,27 +62,26 @@ record PParams : Set where
         collateralPercent  : ℕ
 \end{code}
 \emph{Governance group}
-\AgdaTarget{drepThresholds, poolThresholds, ccMinSize, ccMaxTermLength, govActionLifetime, govActionDeposit, drepDeposit, drepActivity, minimumAVS}
+\AgdaTarget{drepThresholds, poolThresholds, minCCSize, ccTermLimit, govExpiration, govDeposit, drepDeposit, drepActivity, minimumAVS}
 \begin{code}
         drepThresholds     : DrepThresholds
         poolThresholds     : PoolThresholds
-        govActionLifetime  : ℕ
-        govActionDeposit   : Coin
+        minCCSize          : ℕ
+        ccTermLimit        : ℕ
+        govExpiration      : ℕ
+        govDeposit         : Coin
         drepDeposit        : Coin
         drepActivity       : Epoch
-        ccMinSize          : ℕ
-        ccMaxTermLength    : ℕ
         minimumAVS         : Coin
 
 paramsWellFormed : PParams → Bool
-paramsWellFormed pp =
-  ⌊ ¿ ¬ (0  ∈ fromList
+paramsWellFormed pp = let open PParams pp in
+  ⌊ ¿ ¬ (0  ∈ setFromList
     ( maxBlockSize ∷ maxTxSize ∷ maxHeaderSize ∷ maxValSize ∷ minUTxOValue
-    ∷ poolDeposit ∷ collateralPercent ∷ ccMaxTermLength
-    ∷ govActionLifetime ∷ govActionDeposit ∷ drepDeposit
+    ∷ poolDeposit ∷ collateralPercent ∷ ccTermLimit
+    ∷ govExpiration ∷ govDeposit ∷ drepDeposit
     ∷ []))
-  ¿ ⌋ ∧ ⌊ ℕtoEpoch govActionLifetime ≤ᵉ? drepActivity ⌋
-  where open PParams pp
+  ¿ ⌋ ∧ ⌊ ℕtoEpoch govExpiration ≤ᵉ? drepActivity ⌋
 \end{code}
 \end{AgdaAlign}
 } %% End: small
@@ -109,10 +108,10 @@ These new parameters are declared in Figure~\ref{fig:protocol-parameter-declarat
   \item \drepThresholds: governance thresholds for \DReps; these are rational numbers
   named \Pone, \Ptwoa, \Ptwob, \Pthree, \Pfour, \Pfivea, \Pfiveb, \Pfivec, \Pfived, and \Psix;
   \item \poolThresholds: pool-related governance thresholds; these are rational numbers named \Qone, \Qtwoa, \Qtwob, and \Qfour;
-  \item \ccMinSize: minimum constitutional committee size;
-  \item \ccMaxTermLength: maximum term limit (in epochs) of constitutional committee members;
-  \item \govActionLifetime: governance action expiration;
-  \item \govActionDeposit: governance action deposit;
+  \item \minCCSize: minimum constitutional committee size;
+  \item \ccTermLimit: maximum term limit (in epochs) of constitutional committee members;
+  \item \govExpiration: governance action expiration;
+  \item \govDeposit: governance action deposit;
   \item \drepDeposit: \DRep deposit amount;
   \item \drepActivity: \DRep activity period;
   \item \minimumAVS: the minimum active voting threshold.
